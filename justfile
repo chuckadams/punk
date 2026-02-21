@@ -5,7 +5,7 @@ platform_dir := 'platform' / platform
 list:
     just --list
 
-all: rebuild test
+all: rebuild install test
 
 rebuild: clean configure make
 
@@ -24,6 +24,9 @@ make:
 
 test:
     -TEST_PHP_ARGS='-q -j{{nproc}}' make test
+
+install:
+    make install
 
 clean: _clean_autoconf _clean_platform
     find . \( -name '*.o' -or -name '*.la' -or -name '*.lo' -or -name '*.1' -or -name '*.8' \) -print0 | xargs -0 rm -f

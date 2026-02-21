@@ -47,6 +47,11 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y \
 
 RUN adduser --uid 10000 --disabled-password punk
 
+# we wouldn't need this if we gave /opt a volume, but I want it cleared with every fresh instance
+RUN chmod 1777 /opt
+
+ENV PATH=/opt/punk/bin:$PATH
+
 WORKDIR /punk
 
 #################################################################
