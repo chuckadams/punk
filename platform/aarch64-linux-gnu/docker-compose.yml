@@ -1,0 +1,22 @@
+services:
+  punk: &punk
+    build:
+#      context: ../../..
+#      dockerfile: platforms/aarch64-linux-gnu/Dockerfile
+      target: dev
+    platform: linux/arm64
+    volumes:
+      - ../..:/punk
+      - ccache:/ccache
+    env_file: '.env'
+
+
+  punk-builder:
+    <<: *punk
+    build:
+      target: builder
+    entrypoint: ['just', 'all']
+    restart: no
+
+volumes:
+  ccache: ~
