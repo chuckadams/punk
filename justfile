@@ -42,4 +42,4 @@ _clean_autoconf:
     rm -rf autom4te.cache configure config.* Makefile Makefile.* libtool
 
 _clean_platform:
-    # rm -f {{platform_dir}}/config.cache
+    rm -f {{platform_dir}}/config.cache
