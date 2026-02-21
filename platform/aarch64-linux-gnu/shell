@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2046
+# shellcheck disable=SC2086
+
+set -euo pipefail
+
+cd $(dirname $0)
+exec docker compose run --rm ${DOCKER_ARGS:-} punk "${@:-bash}"
