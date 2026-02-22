@@ -14,6 +14,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y \
     clang \
     clang-format \
     clang-tidy \
+    git \
     just \
     meson \
     make \
