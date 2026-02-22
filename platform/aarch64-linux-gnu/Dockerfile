@@ -23,35 +23,49 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y \
     re2c
 
 RUN DEBIAN_FRONTEND=noninteractive apt install -y \
+    firebird-dev \
     libargon2-dev \
     libavif-dev \
     libbz2-dev \
     libcurl4-openssl-dev \
     libedit-dev \
+    libenchant-2-dev \
+    libffi-dev \
     libfreetype-dev \
     libicu-dev \
+    libiodbc2-dev \
     libjpeg-dev \
+    libmm-dev \
+    libonig-dev \
     libpng-dev \
     libpq-dev \
     libreadline-dev \
+    libsasl2-dev \
+    libsnmp-dev \
     libsodium-dev \
     libsqlite3-dev \
     libssl-dev \
+    libtidy-dev \
     libwebp-dev \
     libxpm-dev \
     libxslt-dev \
     libz-dev \
     libzip-dev
 
+RUN DEBIAN_FRONTEND=noninteractive apt install -y \
+    apache2 \
+    apache2-dev
+
 # This is convenient for debian, but its leaf dependencies should be moved to the list above for easier porting
 # RUN DEBIAN_FRONTEND=noninteractive apt install -y php-all-dev
 
 RUN adduser --uid 10000 --disabled-password punk
 
-# we wouldn't need this if we gave /opt a volume, but I want it cleared with every fresh instance
-RUN chmod 1777 /opt
-
 ENV PATH=/opt/punk/bin:$PATH
+
+RUN mkdir /opt/punk && chown -R punk /opt/punk
+
+VOLUME /opt/punk
 
 WORKDIR /punk
 

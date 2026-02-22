@@ -8,6 +8,7 @@ services:
     volumes:
       - ../..:/punk
       - ccache:/ccache
+      - opt_punk:/opt/punk
     env_file: '.env'
 
 
@@ -20,3 +21,4 @@ services:
 
 volumes:
   ccache: ~
+  opt_punk: ~
