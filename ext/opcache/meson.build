@@ -13,4 +13,11 @@ ext_opcache_sources = files(
     'zend_persist.c',
     'zend_persist_calc.c',
     'zend_shared_alloc.c',
+
+# opcache is not working
+#    'jit/zend_jit.c',
+#    'jit/zend_jit_helpers.c',
+#    'jit/zend_jit_ir.c',
+#    'jit/zend_jit_trace.c',
+#    'jit/zend_jit_vm_helpers.c',
 )

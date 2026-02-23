@@ -23,6 +23,7 @@ configure:
         --prefix={{install_dir}} \
         --disable-all \
         --enable-debug \
+        --disable-opcache-jit \
         --enable-re2c-cgoto \
         --enable-sigchild \
         \
