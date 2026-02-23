@@ -1,4 +1,12 @@
 # .gitignore file for punk
+
+# ignore all root dotfiles and dotdirs, with exceptions
+/.*
+!/.editorconfig
+!/.gdbinit
+!/.gitattributes
+!/.gitignore
+
 .env
 actmp.*
 
