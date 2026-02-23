@@ -1,5 +1,7 @@
-#   EXTRA_FLAGS="-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DU_HIDE_OBSOLETE_UTF_OLD_H=1 -Wno-write-strings -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" cc_ ./*.c
 ext_intl_sources = files(
+    'intl_convert.c',
+    'intl_error.c',
+    'php_intl.c',
     'intl_convertcpp.cpp',
     'collator/collator_attr.cpp',
     'collator/collator_class.cpp',
@@ -69,4 +71,19 @@ ext_intl_sources = files(
     'spoofchecker/spoofchecker_create.cpp',
     'spoofchecker/spoofchecker_main.cpp',
     'uchar/uchar.cpp',
+)
+
+ext_intl_objs = static_library(
+    'ext_intl_objs',
+    ext_intl_sources,
+    c_args : [
+        '-Wno-write-strings',
+        '-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1',
+        '-DU_HIDE_OBSOLETE_UTF_OLD_H=1',
+        '-D__STDC_LIMIT_MACROS',
+        '-D__STDC_CONSTANT_MACROS',
+        '-D__STDC_FORMAT_MACROS'
+    ],
+    include_directories : [includes],
+    build_by_default : false,
 )

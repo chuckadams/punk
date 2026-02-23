@@ -11,15 +11,20 @@ cflags = [
 
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language: 'c')
-add_project_arguments('-DHAVE_MEMFD_CREATE', language: 'c')
+add_project_arguments('-DPUNK', language: ['c', 'cpp'])
+add_project_arguments('-DPUNK_MESON', language: ['c', 'cpp'])
+add_project_arguments('-DHAVE_MEMFD_CREATE', language: 'c')  # zend
 
 dependencies = [
+    dependency('icu-i18n'),
+    dependency('icu-io'),
     dependency('libargon2'),
     dependency('libavif'),
     dependency('libedit'),
     dependency('libxml-2.0'),
-    dependency('zlib'),
+    dependency('openssl'),
     dependency('threads'),
+    dependency('zlib'),
     cc.find_library('m'),
 ]
 

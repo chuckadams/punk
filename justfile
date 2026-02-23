@@ -23,9 +23,12 @@ configure:
         --prefix={{install_dir}} \
         --disable-all \
         --enable-debug \
-        --disable-opcache-jit \
         --enable-re2c-cgoto \
         --enable-sigchild \
+        \
+        --disable-fiber-asm \
+        --disable-opcache-jit \
+        --disable-zend-max-execution-timers \
         \
         $(just _sapi_{{sapi}}) \
         \
