@@ -47,6 +47,12 @@
 #include "zend_strtod.h"
 #include "zend_multiply.h"
 
+// punk: added for meson build, but doesn't work, memrchr still doesn't show up.  hacked near the use site now
+// #ifndef _GNU_SOURCE
+// #define _GNU_SOURCE
+// #endif
+// #include <string.h>
+
 #define LONG_SIGN_MASK ZEND_LONG_MIN
 
 BEGIN_EXTERN_C()
@@ -228,7 +234,7 @@ zend_memnstr(const char *haystack, const char *needle, size_t needle_len, const 
 
 static zend_always_inline const void *zend_memrchr(const void *s, int c, size_t n)
 {
-#if defined(HAVE_MEMRCHR) && !defined(__i386__)
+#if defined(HAVE_MEMRCHR) && !defined(__i386__) && !defined(PUNK_MESON)
 	/* On x86 memrchr() doesn't use SSE/AVX, so inlined version is faster */
 	return (const void*)memrchr(s, c, n);
 #else
