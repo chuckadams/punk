@@ -45,7 +45,7 @@ sapi_cli_exe = executable(
     include_directories : includes,
     link_whole: [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs],
     export_dynamic: true,
-    install : false,
+    install : true,
 )
 
 test('sapi_cli_test_basic', sapi_cli_exe)
