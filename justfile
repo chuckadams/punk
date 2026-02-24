@@ -155,5 +155,6 @@ clean:
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
 meson:
+    rm -rf .meson-build
     [ -d .meson-build ] || meson setup .meson-build
     meson compile -C .meson-build
