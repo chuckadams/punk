@@ -154,7 +154,11 @@ clean:
     rm -rf autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
-meson:
+meson: _meson-setup _meson-compile
+
+_meson-setup:
     rm -rf .meson-build
-    [ -d .meson-build ] || meson setup .meson-build
+    [ -d .meson-build ] || meson setup --prefix /opt/punk .meson-build
+
+_meson-compile:
     meson compile -C .meson-build
