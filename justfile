@@ -150,8 +150,8 @@ install:
     find /opt/punk/lib/php/extensions/* -type f
 
 clean:
+    # rm -f {{platform_dir}}/config.cache
     rm -rf autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
-    rm -f {{platform_dir}}/config.cache
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
 meson:
