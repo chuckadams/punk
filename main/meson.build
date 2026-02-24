@@ -44,6 +44,5 @@ main_objs = static_library(
     main_sources,
     c_args: [],
     include_directories: [includes],
-    dependencies: dependencies,
     build_by_default: false,
 )
