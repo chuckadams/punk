@@ -48,4 +48,5 @@ shared_module(
     c_args : [],
     include_directories : [includes, 'libmbfl', 'libmbfl/mbfl'],
     dependencies: [],
+    install : true,
 )

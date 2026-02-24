@@ -49,4 +49,5 @@ shared_module(
     c_args: ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
     include_directories : [includes],
     dependencies: [dependency('libpcre2-8')],
+    install : true,
 )

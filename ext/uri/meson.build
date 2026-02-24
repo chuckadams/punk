@@ -43,4 +43,5 @@ shared_module(
     # annoyingly, doesn't work: we still need to put ext/uri/uriparser/include in the root includes
     include_directories : [includes, 'uriparser/include',],
     dependencies: [],
+    install : true,
 )

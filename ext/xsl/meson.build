@@ -10,4 +10,5 @@ shared_module(
     c_args : [],
     include_directories : [includes],
     dependencies: [dependency('libxml-2.0')],
+    install : true,
 )
