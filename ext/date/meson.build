@@ -11,3 +11,11 @@ ext_date_sources = files(
     'lib/tm2unixtime.c',
     'lib/unixtime2tm.c',
 )
+
+shared_module(
+    'date',
+    [ext_date_sources],
+    name_prefix: '',
+    c_args : [],
+    include_directories : [includes],
+)

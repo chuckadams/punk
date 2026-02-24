@@ -32,3 +32,11 @@ ext_hash_objs = static_library(
     include_directories: [includes, 'sha3/generic64lc'],
     build_by_default: false,
 )
+
+shared_module(
+    'hash',
+    [ext_hash_sources],
+    name_prefix: '',
+    c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'],
+    include_directories: [includes, 'sha3/generic64lc'],
+)
