@@ -159,7 +159,7 @@ clean:
 meson: _meson-setup _meson-compile _meson-install
 
 _meson-setup: _wipe-build
-    [ -d {{meson_build_dir}} ] || meson setup --prefix {{prefix}} {{meson_build_dir}}
+    [ -d {{meson_build_dir}} ] || meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}
 
 _meson-compile:
     meson compile -C {{meson_build_dir}}
