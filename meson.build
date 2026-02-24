@@ -34,9 +34,7 @@ includes = include_directories(
     'main',
     'Zend',
     'TSRM',
-    'ext/intl',
     'ext/lexbor',
-    'ext/opcache',
     'ext/uri/uriparser/include',
 )
 
