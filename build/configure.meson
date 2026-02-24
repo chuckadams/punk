@@ -1,0 +1,501 @@
+# not usable yet
+
+cc = meson.get_compiler('c')
+cdata = configuration_data()
+check_headers = [
+    'alloca.h',
+    'arpa/inet.h',
+    'arpa/nameser.h',
+    'build/defs.h',
+    'cli0cli.h',
+    'cli0core.h',
+    'cli0defs.h',
+    'cli0env.h',
+    'cli0ext.h',
+    'commoncrypto/commonrandom.h',
+    'cpuid.h',
+    'crypt.h',
+    'dirent.h',
+    'dlfcn.h',
+    'dns.h',
+    'fcntl.h',
+    'grp.h',
+    'ieeefp.h',
+    'immintrin.h',
+    'inttypes.h',
+    'iodbc.h',
+    'io.h',
+    'isqlext.h',
+    'isql.h',
+    'langinfo.h',
+    'libproc.h',
+    'librarymanager.h',
+    'linux/filter.h',
+    'linux/if/ether.h',
+    'linux/if/packet.h',
+    'linux/sock/diag.h',
+    'linux/udp.h',
+    'minix/config.h',
+    'netinet/in.h',
+    'net/if.h',
+    'nmmintrin.h',
+    'odbc.h',
+    'poll.h',
+    'pty.h',
+    'pwd.h',
+    'resolv.h',
+    'sqlcli1.h',
+    'sqlext.h',
+    'sqltypes.h',
+    'sqlucode.h',
+    'sqlunix.h',
+    'sql.h',
+    'stdint.h',
+    'stdio.h',
+    'stdlib.h',
+    'strings.h',
+    'string.h',
+    'sysexits.h',
+    'syslog.h',
+    'sys/acl.h',
+    'sys/file.h',
+    'sys/ioctl.h',
+    'sys/ipc.h',
+    'sys/loadavg.h',
+    'sys/mman.h',
+    'sys/mount.h',
+    'sys/param.h',
+    'sys/poll.h',
+    'sys/pstat.h',
+    'sys/resource.h',
+    'sys/select.h',
+    'sys/socket.h',
+    'sys/sockio.h',
+    'sys/statfs.h',
+    'sys/statvfs.h',
+    'sys/stat.h',
+    'sys/sysexits.h',
+    'sys/sysmacros.h',
+    'sys/time.h',
+    'sys/types.h',
+    'sys/uio.h',
+    'sys/utsname.h',
+    'sys/vfs.h',
+    'sys/wait.h',
+    'tidybuffio.h',
+    'tidyp.h',
+    'tidy.h',
+    'timelib/config.h',
+    'tmmintrin.h',
+    'udbcext.h',
+    'unistd.h',
+    'unix.h',
+    'utime.h',
+    'valgrind/cachegrind.h',
+    'wchar.h',
+    'wmmintrin.h',
+]
+
+foreach h : check_headers
+    if cc.has_header(h)
+        cdata.set('HAVE_' + h.underscorify().to_upper(), 1)
+    endif
+endforeach
+
+check_functions = [
+    ['HAVE_ACCEPT4', 'accept4', '#include<sys/socket.h>'],
+    ['HAVE_ALLOCA', 'alloca', '#include<alloca.h>'],
+    ['HAVE_CHROOT', 'chroot', '#include<unistd.h>'],
+    ['HAVE_CLOCK_GETTIME', 'clock_gettime', '#include<time.h>'],
+    ['HAVE_CTERMID', 'ctermid', '#include<stdio.h>'],
+    ['HAVE_CTIME_R', 'ctime_r', '#include<time.h>'],
+    ['HAVE_FDATASYNC', 'fdatasync', '#include<unistd.h>'],
+    ['HAVE_FLOCK', 'flock', '#include<sys/file.h>'],
+    ['HAVE_FORK', 'fork', '#include<unistd.h>'],
+    ['HAVE_FPATHCONF', 'fpathconf', '#include<unistd.h>'],
+    ['HAVE_GAI_STRERROR', 'gai_strerror', '#include<netdb.h>'],
+    ['HAVE_GETADDRINFO', 'getaddrinfo', '#include<netdb.h>'],
+    ['HAVE_GETGRGID_R', 'getgrgid_r', '#include<grp.h>'],
+    ['HAVE_GETGRNAM_R', 'getgrnam_r', '#include<grp.h>'],
+    ['HAVE_GETGROUPS', 'getgroups', '#include<grp.h>'],
+    ['HAVE_GETHOSTBYNAME_R', 'gethostbyname_r', '#include<netdb.h>'],
+    ['HAVE_GETLOADAVG', 'getloadavg', '#include<stdlib.h>'],
+    ['HAVE_GETLOGIN', 'getlogin', '#include<unistd.h>'],
+    ['HAVE_GETPGID', 'getpgid', '#include<unistd.h>'],
+    ['HAVE_GETPID', 'getpid', '#include<unistd.h>'],
+    ['HAVE_GETPRIORITY', 'getpriority', '#include<sys/resource.h>'],
+    ['HAVE_GETPWNAM_R', 'getpwnam', '#include<pwd.h>'],
+    ['HAVE_GETPWUID_R', 'getpwuid_r', '#include<pwd.h>'],
+    ['HAVE_GETRANDOM', 'getrandom', '#include<linux/random.h>'],
+    ['HAVE_GETSID', 'getsid', '#include<unistd.h>'],
+    ['HAVE_GETTIMEOFDAY', 'gettimeofday', '#include<sys/time.h>'],
+    ['HAVE_GETWD', 'getwd', '#include<unistd.h>'],
+    ['HAVE_GMTIME_R', 'gmtime_r', '#include<time.h>'],
+    ['HAVE_HSTRERROR', 'hstrerror', '#include<netdb.h>'],
+    ['HAVE_IF_INDEXTONAME', 'if_indextoname', '#include<net/if.h>'],
+    ['HAVE_IF_NAMETOINDEX', 'if_nametoindex', '#include<net/if.h>'],
+    ['HAVE_INITGROUPS', 'initgroups', '#include<grp.h>'],
+    ['HAVE_ISSETUGID', 'issetugid', '#include<unistd.h>'],
+    ['HAVE_KILL', 'kill', '#include<signal.h>'],
+    ['HAVE_KQUEUE', 'kqueue', '#include<sys/event.h>'],
+    ['HAVE_LCHOWN', 'lchown', '#include<unistd.h>'],
+    ['HAVE_MAKEDEV', 'makedev', '#include<sys/sysmacros.h>'],
+    ['HAVE_MEMMEM', 'memmem', '#include<string.h>'],
+    ['HAVE_MEMRCHR', 'memrchr', '#include<string.h>'],
+    ['HAVE_MKFIFO', 'mkfifo', '#include<sys/stat.h>'],
+    ['HAVE_MKNOD', 'mknod', '#include<unistd.h>'],
+    ['HAVE_MMAP', 'mmap', '#include<sys/mman.h>'],
+    ['HAVE_MPROTECT', 'mprotect', '#include<sys/mman.h>'],
+    ['HAVE_NANOSLEEP', 'nanosleep', '#include<time.h>'],
+    ['HAVE_NICE', 'nice', '#include<unistd.h>'],
+    ['HAVE_OPENPTY', 'openpty', '#include<pty.h>'],
+    ['HAVE_PATHCONF', 'pathconf', '#include<unistd.h>'],
+    ['HAVE_POLL', 'poll', '#include<poll.h>'],
+    ['HAVE_PREAD', 'pread', '#include<unistd.h>'],
+    ['HAVE_PUTENV', 'putenv', '#include<stdlib.h>'],
+    ['HAVE_PWRITE', 'pwrite', '#include<unistd.h>'],
+    ['HAVE_SCHED_SETAFFINITY', 'sched_setaffinity', '#include<sched.h>'],
+    ['HAVE_SELECT', 'select', '#include<sys/select.h>'],
+    ['HAVE_SETEGID', 'setegid', '#include<unistd.h>'],
+    ['HAVE_SETENV', 'setenv', '#include<stdlib.h>'],
+    ['HAVE_SETEUID', 'seteuid', '#include<unistd.h>'],
+    ['HAVE_SETITIMER', 'setitimer', '#include<sys/time.h>'],
+    ['HAVE_SETPRIORITY', 'setpriority', '#include<sys/resource.h>'],
+    ['HAVE_SETSID', 'setsid', '#include<unistd.h>'],
+    ['HAVE_SIGACTION', 'sigaction', '#include<signal.h>'],
+    ['HAVE_SIGTIMEDWAIT', 'sigtimedwait', '#include<signal.h>'],
+    ['HAVE_SIGWAITINFO', 'sigwaitinfo', '#include<signal.h>'],
+    ['HAVE_SOCKETPAIR', 'socketpair', '#include<sys/socket.h>'],
+    ['HAVE_STATFS', 'statfs', '#include<mount.h>'],
+    ['HAVE_STATVFS', 'statvfs', '#include<sys/statvfs.h>'],
+    ['HAVE_STRCASECMP', 'strcasecmp', '#include<strings.h>'],
+    ['HAVE_STRERROR_R', 'strerror_r', '#include<string.h>'],
+    ['HAVE_STRLCAT', 'strlcat', '#include<string.h>'],
+    ['HAVE_STRLCPY', 'strlcpy', '#include<string.h>'],
+    ['HAVE_STRNDUP', 'strndup', '#include<string.h>'],
+    ['HAVE_STRTOLL', 'strtoll', '#include<stdlib.h>'],
+    ['HAVE_SYMLINK', 'symlink', '#include<unistd.h>'],
+    ['HAVE_TIMES', 'times', '#include<sys/times.h>'],
+    ['HAVE_TZNAME', 'tzname', '#include<time.h>'],
+    ['HAVE_UNSETENV', 'unsetenv', '#include<stdlib.h>'],
+    ['HAVE_USLEEP', 'usleep', '#include<unistd.h>'],
+    ['HAVE_UTIMES', 'utimes', '#include<sys/time.h>'],
+    ['HAVE_VASPRINTF', 'vasprintf', '#include<stdio.h>'],
+    ['HAVE_WAIT3', 'wait3', '#include<sys/wait.h>'],
+    ['HAVE_WAIT4', 'wait4', '#include<sys/wait.h>'],
+    ['HAVE_WAITID', 'waitid', '#include<sys/wait.h>'],
+
+    # check token ['HAVE_3ARG_SETREBINDPROC']
+    # check token ['HAVE_AARCH64_CRC32']
+    # check token ['HAVE_ALIGNOF']
+    # check token ['HAVE_ALPHASORT']
+    # check token ['HAVE_APPARMOR']
+    # check token ['HAVE_ARC4RANDOM_BUF']
+    # check token ['HAVE_ARGON2LIB']
+    # check token ['HAVE_ASCTIME_R']
+    # check token ['HAVE_ASM_GOTO']
+    # check token ['HAVE_ASPRINTF']
+    # check token ['HAVE_ATOLL']
+    # check token ['HAVE_ATTRIBUTE_ALIGNED']
+    # check token ['HAVE_BCMATH']
+    # check token ['HAVE_BIND_TEXTDOMAIN_CODESET']
+    # check token ['HAVE_BROKEN_GETCWD']
+    # check token ['HAVE_BUILTIN_ATOMIC']
+    # check token ['HAVE_BUNDLED_PCRE']
+    # check token ['HAVE_BZ2']
+    # check token ['HAVE_CALENDAR']
+    # check token ['HAVE_CANCEL_CALLBACK']
+    # check token ['HAVE_CAPSTONE']
+    # check token ['HAVE_CLEARENV']
+    # check token ['HAVE_CLOCK_GETTIME_NSEC_NP']
+    # check token ['HAVE_CLOCK_GET_TIME']
+    # check token ['HAVE_CODBC']
+    # check token ['HAVE_COPY_FILE_RANGE']
+    # check token ['HAVE_CPUID_COUNT']
+    # check token ['HAVE_CREATEPROCESS']
+    # check token ['HAVE_CRYPT']
+    # check token ['HAVE_CRYPT_R']
+    # check token ['HAVE_CTYPE']
+    # check token ['HAVE_CURL']
+    # check token ['HAVE_DBA']
+    # check token ['HAVE_DCNGETTEXT']
+    # check token ['HAVE_DECL_PGRES_TUPLES_CHUNK']
+    # check token ['HAVE_DECL_P_ALL']
+    # check token ['HAVE_DECL_P_JAILID']
+    # check token ['HAVE_DECL_P_PIDFD']
+    # check token ['HAVE_DECL_P_UID']
+    # check token ['HAVE_DECL_STRERROR_R']
+    # check token ['HAVE_DECL_STRPTIME']
+    # check token ['HAVE_DECL_SYS_PIDFD_OPEN']
+    # check token ['HAVE_DECL_SYS_WAITID']
+    # check token ['HAVE_DECL_TZNAME']
+    # check token ['HAVE_DECL_WCONTINUED']
+    # check token ['HAVE_DECL_WEXITED']
+    # check token ['HAVE_DECL_WNOWAIT']
+    # check token ['HAVE_DECL_WSTOPPED']
+    # check token ['HAVE_DMALLOC']
+    # check token ['HAVE_DNGETTEXT']
+    # check token ['HAVE_DNS_SEARCH']
+    # check token ['HAVE_DN_EXPAND']
+    # check token ['HAVE_DN_SKIPNAME']
+    # check token ['HAVE_DOM']
+    # check token ['HAVE_DTRACE']
+    # check token ['HAVE_EACCESS']
+    # check token ['HAVE_ELF_AUX_INFO']
+    # check token ['HAVE_ENCHANT']
+    # check token ['HAVE_ENCHANT_BROKER_SET_PARAM']
+    # check token ['HAVE_ENCHANT_GET_VERSION']
+    # check token ['HAVE_ENCRYPTION']
+    # check token ['HAVE_EPOLL']
+    # check token ['HAVE_ERASE_EMPTY_LINE']
+    # check token ['HAVE_EXIF']
+    # check token ['HAVE_EXPLICIT_BZERO']
+    # check token ['HAVE_EXPLICIT_MEMSET']
+    # check token ['HAVE_FFI']
+    # check token ['HAVE_FFI_FASTCALL']
+    # check token ['HAVE_FFI_MS_CDECL']
+    # check token ['HAVE_FFI_PASCAL']
+    # check token ['HAVE_FFI_REGISTER']
+    # check token ['HAVE_FFI_STDCALL']
+    # check token ['HAVE_FFI_SYSV']
+    # check token ['HAVE_FFI_THISCALL']
+    # check token ['HAVE_FLUSHIO']
+    # check token ['HAVE_FNMATCH']
+    # check token ['HAVE_FOPENCOOKIE']
+    # check token ['HAVE_FORKX']
+    # check token ['HAVE_FPM_ACL']
+    # check token ['HAVE_FPSETPREC']
+    # check token ['HAVE_FPU_INLINE_ASM_X86']
+    # check token ['HAVE_FTOK']
+    # check token ['HAVE_FTP']
+    # check token ['HAVE_FTP_SSL']
+    # check token ['HAVE_FUNC_ATTRIBUTE_IFUNC']
+    # check token ['HAVE_FUNC_ATTRIBUTE_TARGET']
+    # check token ['HAVE_FUNC_ATTRIBUTE_VISIBILITY']
+    # check token ['HAVE_FUNC_GETHOSTBYNAME_R_3']
+    # check token ['HAVE_FUNC_GETHOSTBYNAME_R_5']
+    # check token ['HAVE_FUNC_GETHOSTBYNAME_R_6']
+    # check token ['HAVE_FUNOPEN']
+    # check token ['HAVE_GCC_GLOBAL_REGS']
+    # check token ['HAVE_GCOV']
+    # check token ['HAVE_GD_AVIF']
+    # check token ['HAVE_GD_BUNDLED']
+    # check token ['HAVE_GD_FREETYPE']
+    # check token ['HAVE_GD_GET_INTERPOLATION']
+    # check token ['HAVE_GD_JPG']
+    # check token ['HAVE_GD_LIBVERSION']
+    # check token ['HAVE_GD_PNG']
+    # check token ['HAVE_GD_WEBP']
+    # check token ['HAVE_GD_XPM']
+    # check token ['HAVE_GETCPUID']
+    # check token ['HAVE_GETCWD']
+    # check token ['HAVE_GETHOSTNAME']
+    # check token ['HAVE_GETIFADDRS']
+    # check token ['HAVE_GETOPT']
+    # check token ['HAVE_GETPROTOBYNAME']
+    # check token ['HAVE_GETPROTOBYNUMBER']
+    # check token ['HAVE_GETRLIMIT']
+    # check token ['HAVE_GETRUSAGE']
+    # check token ['HAVE_GETSERVBYNAME']
+    # check token ['HAVE_GETSERVBYPORT']
+    # check token ['HAVE_GETTID']
+    # check token ['HAVE_GLIBC_ICONV']
+    # check token ['HAVE_GLOB']
+    # check token ['HAVE_GMP']
+    # check token ['HAVE_HISTORY_LIST']
+    # check token ['HAVE_HUGE_CODE_PAGES']
+    # check token ['HAVE_IBMDB2']
+    # check token ['HAVE_IBM_ICONV']
+    # check token ['HAVE_ICONV']
+    # check token ['HAVE_IODBC']
+    # check token ['HAVE_IPV6']
+    # check token ['HAVE_JIT']
+    # check token ['HAVE_LDAP']
+    # check token ['HAVE_LDAP_CONTROL_FIND']
+    # check token ['HAVE_LDAP_EXTENDED_OPERATION']
+    # check token ['HAVE_LDAP_EXTENDED_OPERATION_S']
+    # check token ['HAVE_LDAP_PARSE_EXTENDED_RESULT']
+    # check token ['HAVE_LDAP_PARSE_REFERENCE']
+    # check token ['HAVE_LDAP_PARSE_RESULT']
+    # check token ['HAVE_LDAP_PASSWD']
+    # check token ['HAVE_LDAP_REFRESH_S']
+    # check token ['HAVE_LDAP_SASL']
+    # check token ['HAVE_LDAP_START_TLS_S']
+    # check token ['HAVE_LDAP_WHOAMI_S']
+    # check token ['HAVE_LEXBOR']
+    # check token ['HAVE_LIBATOMIC']
+    # check token ['HAVE_LIBAVIF']
+    # check token ['HAVE_LIBDL']
+    # check token ['HAVE_LIBEDIT']
+    # check token ['HAVE_LIBEXPAT']
+    # check token ['HAVE_LIBFREETYPE']
+    # check token ['HAVE_LIBGD']
+    # check token ['HAVE_LIBICONV']
+    # check token ['HAVE_LIBINTL']
+    # check token ['HAVE_LIBJPEG']
+    # check token ['HAVE_LIBMM']
+    # check token ['HAVE_LIBPNG']
+    # check token ['HAVE_LIBREADLINE']
+    # check token ['HAVE_LIBRESOLV']
+    # check token ['HAVE_LIBSOCKET']
+    # check token ['HAVE_LIBSODIUMLIB']
+    # check token ['HAVE_LIBWEBP']
+    # check token ['HAVE_LIBXML']
+    # check token ['HAVE_LIBZIP_VERSION']
+    # check token ['HAVE_LOCALTIME_R']
+    # check token ['HAVE_LONG_DOUBLE']
+    # check token ['HAVE_LQ_SO_LISTENQ']
+    # check token ['HAVE_LQ_TCP_CONNECTION_INFO']
+    # check token ['HAVE_LQ_TCP_INFO']
+    # check token ['HAVE_MACH_VM_READ']
+    # check token ['HAVE_MBREGEX']
+    # check token ['HAVE_MBSTRING']
+    # check token ['HAVE_MEMCNTL']
+    # check token ['HAVE_MEMFD_CREATE']
+    # check token ['HAVE_MEMPCPY']
+    # check token ['HAVE_MEMSET_EXPLICIT']
+    # check token ['HAVE_METHOD_SUPPORTED']
+    # check token ['HAVE_MKSTEMP']
+    # check token ['HAVE_MREMAP']
+    # check token ['HAVE_NGETTEXT']
+    # check token ['HAVE_NL_LANGINFO']
+    # check token ['HAVE_OPENSSL_ARGON2']
+    # check token ['HAVE_OPENSSL_EXT']
+    # check token ['HAVE_ORALDAP']
+    # check token ['HAVE_PCRE_JIT_SUPPORT']
+    # check token ['HAVE_PCRE_VALGRIND_SUPPORT']
+    # check token ['HAVE_PDO_PGSQL']
+    # check token ['HAVE_PGSQL']
+    # check token ['HAVE_PG_CHANGE_PASSWORD']
+    # check token ['HAVE_PG_CLOSE_STMT']
+    # check token ['HAVE_PG_RESULT_MEMORY_SIZE']
+    # check token ['HAVE_PG_SERVICE']
+    # check token ['HAVE_PG_SET_CHUNKED_ROWS_SIZE']
+    # check token ['HAVE_PG_SOCKET_POLL']
+    # check token ['HAVE_PHPDBG_READLINE']
+    # check token ['HAVE_PHP_SESSION']
+    # check token ['HAVE_PORT_CREATE']
+    # check token ['HAVE_POSIX']
+    # check token ['HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR_NP']
+    # check token ['HAVE_PQCLOSEPREPARED']
+    # check token ['HAVE_PQERRORS_SQLSTATE']
+    # check token ['HAVE_PRCTL']
+    # check token ['HAVE_PRESERVE_NONE']
+    # check token ['HAVE_PROCCTL']
+    # check token ['HAVE_PROGRESS_CALLBACK']
+    # check token ['HAVE_PSET_BIND']
+    # check token ['HAVE_PS_STRINGS']
+    # check token ['HAVE_PTHREAD_ATTR_GETSTACK']
+    # check token ['HAVE_PTHREAD_ATTR_GET_NP']
+    # check token ['HAVE_PTHREAD_GETATTR_NP']
+    # check token ['HAVE_PTHREAD_GET_STACKADDR_NP']
+    # check token ['HAVE_PTHREAD_JIT_WRITE_PROTECT_NP']
+    # check token ['HAVE_PTHREAD_SET_QOS_CLASS_SELF_NP']
+    # check token ['HAVE_PTHREAD_STACKSEG_NP']
+    # check token ['HAVE_PTRACE']
+    # check token ['HAVE_RAND_EGD']
+    # check token ['HAVE_REALLOCARRAY']
+    # check token ['HAVE_RES_NDESTROY']
+    # check token ['HAVE_RES_NSEARCH']
+    # check token ['HAVE_RES_SEARCH']
+    # check token ['HAVE_RFORK']
+    # check token ['HAVE_RL_CALLBACK_READ_CHAR']
+    # check token ['HAVE_RL_COMPLETION_MATCHES']
+    # check token ['HAVE_RL_ON_NEW_LINE']
+    # check token ['HAVE_SCANDIR']
+    # check token ['HAVE_SCHED_GETCPU']
+    # check token ['HAVE_SELINUX']
+    # check token ['HAVE_SETPFLAGS']
+    # check token ['HAVE_SETPROCTITLE']
+    # check token ['HAVE_SETPROCTITLE_FAST']
+    # check token ['HAVE_SETRLIMIT']
+    # check token ['HAVE_SHMOP']
+    # check token ['HAVE_SHM_CREATE_LARGEPAGE']
+    # check token ['HAVE_SHM_IPC']
+    # check token ['HAVE_SHM_MMAP_ANON']
+    # check token ['HAVE_SHM_MMAP_POSIX']
+    # check token ['HAVE_SHUTDOWN']
+    # check token ['HAVE_SHUTDOWN_SNMP_LOGGING']
+    # check token ['HAVE_SIGPROCMASK']
+    # check token ['HAVE_SIMPLEXML']
+    # check token ['HAVE_SLOW_HASH3']
+    # check token ['HAVE_SNMP']
+    # check token ['HAVE_SNMP_SHA256']
+    # check token ['HAVE_SNMP_SHA512']
+    # check token ['HAVE_SOAP']
+    # check token ['HAVE_SOCKATMARK']
+    # check token ['HAVE_SOCKETS']
+    # check token ['HAVE_SOCKLEN_T']
+    # check token ['HAVE_SQLITE3']
+    # check token ['HAVE_SQLITE3_COLUMN_TABLE_NAME']
+    # check token ['HAVE_SQLITE3_EXPANDED_SQL']
+    # check token ['HAVE_STD_SYSLOG']
+    # check token ['HAVE_STRCASESTR']
+    # check token ['HAVE_STRNLEN']
+    # check token ['HAVE_STRPTIME']
+    # check token ['HAVE_STRTOK_R']
+    # check token ['HAVE_STRUCT_CMSGCRED']
+    # check token ['HAVE_STRUCT_FLOCK']
+    # check token ['HAVE_STRUCT_SOCKADDR_SA_LEN']
+    # check token ['HAVE_STRUCT_SOCKADDR_STORAGE']
+    # check token ['HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY']
+    # check token ['HAVE_STRUCT_SOCKADDR_UN_SUN_LEN']
+    # check token ['HAVE_STRUCT_STAT_ST_BLKSIZE']
+    # check token ['HAVE_STRUCT_STAT_ST_BLOCKS']
+    # check token ['HAVE_STRUCT_STAT_ST_RDEV']
+    # check token ['HAVE_STRUCT_TM_TM_GMTOFF']
+    # check token ['HAVE_STRUCT_TM_TM_ZONE']
+    # check token ['HAVE_STRUCT_UCRED']
+    # check token ['HAVE_STRUCT_UTSNAME_DOMAINNAME']
+    # check token ['HAVE_SYSCALL']
+    # check token ['HAVE_SYSTEMD']
+    # check token ['HAVE_SYSVMSG']
+    # check token ['HAVE_SYSVSEM']
+    # check token ['HAVE_SYSVSHM']
+    # check token ['HAVE_TIDY']
+    # check token ['HAVE_TIDYOPTGETCATEGORY']
+    # check token ['HAVE_TIDYOPTGETDOC']
+    # check token ['HAVE_TIDYRELEASEDATE']
+    # check token ['HAVE_TM_ZONE']
+    # check token ['HAVE_TTYNAME_R']
+    # check token ['HAVE_TZSET']
+    # check token ['HAVE_UNION_SEMUN']
+    # check token ['HAVE_UNIXODBC']
+    # check token ['HAVE_UNSHARE']
+    # check token ['HAVE_UODBC']
+    # check token ['HAVE_USERFAULTFD_WRITEFAULT']
+    # check token ['HAVE_UTIME']
+    # check token ['HAVE_VALGRIND']
+    # check token ['HAVE_WAIT6']
+    # check token ['HAVE_WIFCONTINUED']
+    # check token ['HAVE_XML']
+    # check token ['HAVE_XMLREADER']
+    # check token ['HAVE_XMLWRITER']
+    # check token ['HAVE_XPM']
+    # check token ['HAVE_XSL']
+    # check token ['HAVE_XSL_EXSLT']
+    # check token ['HAVE_ZIP']
+    # check token ['HAVE_ZLIB']
+    # check token ['HAVE__CONTROLFP']
+    # check token ['HAVE__CONTROLFP_S']
+    # check token ['HAVE__FPU_SETCW']
+    # check token ['HAVE___ATOMIC_EXCHANGE_1']
+]
+
+foreach f : check_functions
+    if cc.has_function(f.get(1), prefix : f.get(2))
+        cdata.set(f.get(0), 1)
+    endif
+endforeach
+
+cdata.set('SIZEOF_INT', cc.sizeof('int'))
+cdata.set('SIZEOF_LONG', cc.sizeof('long'))
+cdata.set('SIZEOF_LONG_LONG', cc.sizeof('long long'))
+cdata.set('SIZEOF_OFF_T', cc.sizeof('off t'))
+cdata.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
+
+configure_file(
+    input : 'config.h.meson',
+    output : 'config.h',
+    configuration : cdata
+)
