@@ -20,3 +20,14 @@ shared_module(
     include_directories : [includes],
     install : true,
 )
+
+install_headers(
+    'php_date.h',
+    subdir: 'ext/date',
+)
+
+install_headers(
+    'lib/timelib.h',
+    'lib/timelib_config.h',
+    subdir: 'ext/date/lib',
+)

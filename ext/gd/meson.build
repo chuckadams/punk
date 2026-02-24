@@ -50,3 +50,8 @@ shared_module(
     dependencies : [dependency('freetype2')],
     install : true,
 )
+
+install_headers(
+    'php_gd.h',
+    subdir : 'ext/gd',
+)

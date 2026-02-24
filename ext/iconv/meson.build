@@ -1,13 +1,18 @@
 ext_iconv_sources = files(
-  'iconv.c',
+    'iconv.c',
 )
 
 shared_module(
     'iconv',
     [ext_iconv_sources],
-    name_prefix: '',
+    name_prefix : '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [],
+    dependencies : [],
     install : true,
+)
+
+install_headers(
+    'php_iconv.h',
+    subdir : 'ext/iconv',
 )

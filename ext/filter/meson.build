@@ -13,3 +13,8 @@ shared_module(
     include_directories : [includes],
     install : true,
 )
+
+install_headers(
+    'php_filter.h',
+    subdir: 'ext/filter',
+)

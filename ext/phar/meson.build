@@ -19,3 +19,8 @@ shared_module(
     dependencies: [],
     install : true,
 )
+
+install_headers(
+    'php_phar.h',
+    subdir: 'ext/phar',
+)

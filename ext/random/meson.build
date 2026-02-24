@@ -19,3 +19,10 @@ shared_module(
     include_directories : [includes],
     install : true,
 )
+
+install_headers(
+    'php_random.h',
+    'php_random_csprng.h',
+    'php_random_uint128.h',
+    subdir: 'ext/random',
+)

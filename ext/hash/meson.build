@@ -41,3 +41,28 @@ shared_module(
     include_directories: [includes, 'sha3/generic64lc'],
     install : true,
 )
+
+install_headers(
+    'php_hash.h',
+    'php_hash_adler32.h',
+    'php_hash_crc32.h',
+    'php_hash_fnv.h',
+    'php_hash_gost.h',
+    'php_hash_haval.h',
+    'php_hash_joaat.h',
+    'php_hash_md.h',
+    'php_hash_murmur.h',
+    'php_hash_ripemd.h',
+    'php_hash_sha.h',
+    'php_hash_sha3.h',
+    'php_hash_snefru.h',
+    'php_hash_tiger.h',
+    'php_hash_whirlpool.h',
+    'php_hash_xxhash.h',
+    subdir: 'ext/hash',
+)
+
+install_headers(
+    'xxhash/xxhash.h',
+    subdir: 'ext/hash/xxhash',
+)

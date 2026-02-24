@@ -47,3 +47,12 @@ shared_module(
     dependencies: [dependency('libxml-2.0')],
     install : true,
 )
+
+
+install_headers(
+  'dom_ce.h',
+  'namespace_compat.h',
+  'xml_common.h',
+  'xpath_callbacks.h',
+  subdir: 'ext/dom',
+)

@@ -13,8 +13,14 @@ ext_mysqli_sources = files(
 shared_module(
     'mysqli',
     [ext_mysqli_sources],
-    name_prefix: '',
+    name_prefix : '',
     c_args : [],
     include_directories : [includes],
     install : true,
+)
+
+install_headers(
+    'mysqli_mysqlnd.h',
+    'php_mysqli_structs.h',
+    subdir : 'ext/mysqli',
 )

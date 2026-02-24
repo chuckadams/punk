@@ -13,3 +13,8 @@ shared_module(
     include_directories : [includes],
     install : true,
 )
+
+install_headers(
+    'php_curl.h',
+    subdir: 'ext/curl',
+)

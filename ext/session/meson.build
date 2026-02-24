@@ -15,3 +15,10 @@ shared_module(
     dependencies: [],
     install : true,
 )
+
+install_headers(
+    'mod_files.h',
+    'mod_user.h',
+    'php_session.h',
+    subdir: 'ext/session',
+)

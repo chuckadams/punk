@@ -15,3 +15,8 @@ shared_module(
     dependencies: [],
     install : true,
 )
+
+install_headers(
+    'php_sockets.h',
+    subdir: 'ext/sockets',
+)

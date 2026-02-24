@@ -14,8 +14,22 @@ ext_spl_sources = files(
 shared_module(
     'spl',
     [ext_spl_sources],
-    name_prefix: '',
-    c_args: [],
+    name_prefix : '',
+    c_args : [],
     include_directories : [includes],
     install : true,
+)
+
+install_headers(
+    'php_spl.h',
+    'spl_array.h',
+    'spl_directory.h',
+    'spl_dllist.h',
+    'spl_exceptions.h',
+    'spl_fixedarray.h',
+    'spl_functions.h',
+    'spl_heap.h',
+    'spl_iterators.h',
+    'spl_observer.h',
+    subdir : 'ext/spl',
 )

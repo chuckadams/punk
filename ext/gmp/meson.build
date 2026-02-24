@@ -1,13 +1,18 @@
 ext_gmp_sources = files(
-  'gmp.c',
+    'gmp.c',
 )
 
 shared_module(
     'gmp',
     [ext_gmp_sources],
-    name_prefix: '',
+    name_prefix : '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [],
+    dependencies : [],
     install : true,
+)
+
+install_headers(
+    'php_gmp_int.h',
+    subdir : 'ext/gmp',
 )

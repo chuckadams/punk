@@ -15,3 +15,11 @@ shared_module(
     dependencies: [],
     install : true,
 )
+
+install_headers(
+    'pdo_sql_parser.h',
+    'php_pdo.h',
+    'php_pdo_driver.h',
+    'php_pdo_error.h',
+    subdir: 'ext/pdo',
+)
