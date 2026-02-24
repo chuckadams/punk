@@ -32,6 +32,7 @@ configure:
         \
         $(just _sapi_{{sapi}}) \
         \
+        --with-external-pcre \
         --with-libedit \
         --enable-intl \
         --with-mysqli \
@@ -124,7 +125,6 @@ _sapi_phpdbg:
 # * mysqli and mysqlnd both fail to load when built as shared.  fix this.
 # * fuzzer sapi
 # * gcov, valgrind support
-# * investigate --with-external-pcre
 
 # things punk will never support
 # --enable-litespeed  (proprietary)
