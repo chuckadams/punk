@@ -25,16 +25,28 @@ sapi_cli_all_sources = [
     ext_uri_sources,
 ]
 
-link_whole = [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs]
+sapi_cli_dependencies = [
+    dependency('icu-i18n'),
+    dependency('icu-io'),
+    dependency('libargon2'),
+    dependency('libavif'),  # needed because of ext/standard/image.c
+    dependency('libedit'),
+    dependency('libxml-2.0'),
+    dependency('openssl'),
+    dependency('threads'),
+    dependency('zlib'),
+    cc.find_library('m'),
+]
 
-cli = executable(
+sapi_cli_exe = executable(
     'punk',
     sapi_cli_all_sources,
-    dependencies : dependencies,
+    dependencies : sapi_cli_dependencies,
     include_directories : includes,
-    link_whole: link_whole,
+    link_whole: [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs],
+    export_dynamic: true,
     install : false,
 )
 
-#test('test_cli_basic', cli)
+test('sapi_cli_test_basic', sapi_cli_exe)
 
