@@ -1,9 +1,12 @@
+prefix := '/opt/punk'
 nproc := env('NPROC', num_cpus())
 platform := env('PLATFORM')
 sapi := env('BUILD_SAPI', 'cli')
 
 platform_dir := justfile_directory() / 'platform' / platform
-install_dir := env('PUNK_INSTALL_DIR', '/opt/punk')
+install_dir := env('PUNK_INSTALL_DIR', '{{prefix')
+
+meson_build_dir := '.meson-build'
 
 # not supported yet -- a number of extensions won't build statically
 # shared := if env('BUILD_STATIC', 'no') == 'no' { "shared" } else { "static" }
@@ -144,21 +147,28 @@ make:
 test:
     -TEST_PHP_ARGS='-q -j{{nproc}}' make test
 
-install:
-    rm -rf /opt/punk/*
+install: _wipe-install
     make install
-    find /opt/punk/lib/php/extensions/* -type f
+    find {{prefix}}/lib/php/extensions/* -type f
 
 clean:
     # rm -f {{platform_dir}}/config.cache
     rm -rf autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
-meson: _meson-setup _meson-compile
+meson: _meson-setup _meson-compile _meson-install
 
-_meson-setup:
-    rm -rf .meson-build
-    [ -d .meson-build ] || meson setup --prefix /opt/punk .meson-build
+_meson-setup: _wipe-build
+    [ -d {{meson_build_dir}} ] || meson setup --prefix {{prefix}} {{meson_build_dir}}
 
 _meson-compile:
-    meson compile -C .meson-build
+    meson compile -C {{meson_build_dir}}
+
+_meson-install: _wipe-install
+    meson install -C {{meson_build_dir}}
+
+_wipe-build:
+    rm -rf {{meson_build_dir}}
+
+_wipe-install:
+    [ -n {{prefix}} ] && rm -rf {{prefix}}/*
