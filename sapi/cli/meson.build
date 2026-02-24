@@ -9,7 +9,6 @@ sapi_cli_sources = files(
 sapi_cli_all_sources = [
     main_sources,
     tsrm_sources,
-    zend_sources,
     sapi_cli_sources,
     ext_date_sources,
     ext_json_sources,
@@ -26,7 +25,7 @@ sapi_cli_all_sources = [
     ext_uri_sources,
 ]
 
-link_whole = [ext_hash_objs, ext_intl_objs, ext_pcre_objs]
+link_whole = [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs]
 
 cli = executable(
     'punk',

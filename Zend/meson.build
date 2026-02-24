@@ -90,3 +90,11 @@ zend_sources = files(
     # broken if compiled while not enabled
     #    'zend_max_execution_timer.c',
 )
+
+zend_objs = static_library(
+    'zend_objs',
+    zend_sources,
+    c_args: [],
+    include_directories: [includes],
+    build_by_default: false,
+)
