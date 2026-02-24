@@ -46,6 +46,6 @@ shared_module(
     [ext_mbstring_sources],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, 'libmbfl', 'libmbfl/mbfl'],
     dependencies: [],
 )

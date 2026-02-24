@@ -7,6 +7,6 @@ shared_module(
     [ext_tidy_sources],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
-    dependencies: [],
+    include_directories : [includes, '/usr/include/tidy'],  # tidy's stupid pkgconf doesn't provide the include dir
+    dependencies: [dependency('tidy')],
 )

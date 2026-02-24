@@ -1,5 +1,5 @@
 ext_fileinfo_sources = files(
-  'data_file.c',
+#  'data_file.c',
   'fileinfo.c',
   'libmagic/apprentice.c',
   'libmagic/apptype.c',
