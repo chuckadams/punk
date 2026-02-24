@@ -38,3 +38,12 @@ main_sources = files(
     'streams/userspace.c',
     'streams/xp_socket.c',
 )
+
+main_objs = static_library(
+    'main_objs',
+    main_sources,
+    c_args: [],
+    include_directories: [includes],
+    dependencies: dependencies,
+    build_by_default: false,
+)

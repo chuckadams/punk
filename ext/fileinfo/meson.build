@@ -1,0 +1,33 @@
+ext_fileinfo_sources = files(
+  'data_file.c',
+  'fileinfo.c',
+  'libmagic/apprentice.c',
+  'libmagic/apptype.c',
+  'libmagic/ascmagic.c',
+  'libmagic/buffer.c',
+  'libmagic/cdf.c',
+  'libmagic/cdf_time.c',
+  'libmagic/compress.c',
+  'libmagic/der.c',
+  'libmagic/encoding.c',
+  'libmagic/fsmagic.c',
+  'libmagic/funcs.c',
+  'libmagic/is_csv.c',
+  'libmagic/is_json.c',
+  'libmagic/is_simh.c',
+  'libmagic/is_tar.c',
+  'libmagic/magic.c',
+  'libmagic/print.c',
+  'libmagic/readcdf.c',
+  'libmagic/softmagic.c',
+  'libmagic/strcasestr.c',
+  'php_libmagic.c',
+)
+
+shared_module(
+    'fileinfo',
+    [ext_fileinfo_sources],
+    name_prefix: '',
+    c_args : [],
+    include_directories : [includes],
+)

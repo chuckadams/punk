@@ -1,3 +1,11 @@
 tsrm_sources = files(
     'TSRM.c'
 )
+
+tsrm_objs = static_library(
+    'tsrm_objs',
+    tsrm_sources,
+    c_args: [],
+    include_directories: [includes],
+    build_by_default: false,
+)

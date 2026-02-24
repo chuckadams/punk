@@ -68,3 +68,11 @@ ext_standard_sources = files(
     'versioning.c',
     'libavifinfo/avifinfo.c',
 )
+
+ext_standard_objs = static_library(
+    'ext_standard_objs',
+    ext_standard_sources,
+    c_args: [],
+    include_directories: [includes],
+    build_by_default: false,
+)
