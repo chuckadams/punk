@@ -7,6 +7,7 @@ project(
 )
 
 cflags = [
+    '-ffp-contract=off',
 ]
 
 cc = meson.get_compiler('c')
