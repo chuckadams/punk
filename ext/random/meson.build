@@ -10,3 +10,11 @@ ext_random_sources = files(
     'randomizer.c',
     'zend_utils.c',
 )
+
+shared_module(
+    'random',
+    [ext_random_sources],
+    name_prefix: '',
+    c_args: [],
+    include_directories : [includes],
+)

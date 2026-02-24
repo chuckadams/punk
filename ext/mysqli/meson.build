@@ -9,3 +9,11 @@ ext_mysqli_sources = files(
     'mysqli_result_iterator.c',
     'mysqli_warning.c',
 )
+
+shared_module(
+    'mysqli',
+    [ext_mysqli_sources],
+    name_prefix: '',
+    c_args : [],
+    include_directories : [includes],
+)

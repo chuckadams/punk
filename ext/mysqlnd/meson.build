@@ -22,3 +22,11 @@ ext_mysqlnd_sources = files(
     'mysqlnd_wireprotocol.c',
     'php_mysqlnd.c',
 )
+
+shared_module(
+    'mysqlnd',
+    [ext_mysqlnd_sources],
+    name_prefix: '',
+    c_args : [],
+    include_directories : [includes],
+)

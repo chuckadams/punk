@@ -10,3 +10,11 @@ ext_spl_sources = files(
     'spl_iterators.c',
     'spl_observer.c',
 )
+
+shared_module(
+    'spl',
+    [ext_spl_sources],
+    name_prefix: '',
+    c_args: [],
+    include_directories : [includes],
+)

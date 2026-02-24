@@ -73,17 +73,30 @@ ext_intl_sources = files(
     'uchar/uchar.cpp',
 )
 
+# used by both C and C++
+ext_intl_c_args = [
+    '-Wno-write-strings',
+    '-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1',
+    '-DU_HIDE_OBSOLETE_UTF_OLD_H=1',
+    '-D__STDC_LIMIT_MACROS',
+    '-D__STDC_CONSTANT_MACROS',
+    '-D__STDC_FORMAT_MACROS'
+]
+
 ext_intl_objs = static_library(
     'ext_intl_objs',
     ext_intl_sources,
-    c_args : [
-        '-Wno-write-strings',
-        '-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1',
-        '-DU_HIDE_OBSOLETE_UTF_OLD_H=1',
-        '-D__STDC_LIMIT_MACROS',
-        '-D__STDC_CONSTANT_MACROS',
-        '-D__STDC_FORMAT_MACROS'
-    ],
+    c_args : ext_intl_c_args,
+    cpp_args : ext_intl_c_args,
     include_directories : [includes],
     build_by_default : false,
+)
+
+shared_module(
+    'intl',
+    [ext_intl_sources],
+    name_prefix: '',
+    c_args : ext_intl_c_args,
+    cpp_args : ext_intl_c_args,
+    include_directories : [includes],
 )

@@ -38,3 +38,11 @@ ext_pcre_objs = static_library(
     include_directories: [includes],
     build_by_default: false,
 )
+
+shared_module(
+    'pcre',
+    [ext_pcre_sources],
+    name_prefix: '',
+    c_args: ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
+    include_directories : [includes],
+)
