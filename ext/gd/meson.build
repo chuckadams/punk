@@ -48,4 +48,5 @@ shared_module(
     c_args : [],
     include_directories : [includes],
     dependencies : [dependency('freetype2')],
+    install : true,
 )

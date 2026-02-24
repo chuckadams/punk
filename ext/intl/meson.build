@@ -99,4 +99,5 @@ shared_module(
     c_args : ext_intl_c_args,
     cpp_args : ext_intl_c_args,
     include_directories : [includes],
+    install : true,
 )

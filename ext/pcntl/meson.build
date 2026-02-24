@@ -10,4 +10,5 @@ shared_module(
     c_args : ['-DHAVE_STRUCT_SIGINFO_T'], # TODO: detect siginfo_t on platform
     include_directories : [includes],
     dependencies: [],
+    install : true,
 )

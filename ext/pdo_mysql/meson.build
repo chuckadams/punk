@@ -12,4 +12,5 @@ shared_module(
     c_args : [],
     include_directories : [includes],
     dependencies: [],
+    install : true,
 )

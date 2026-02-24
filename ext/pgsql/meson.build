@@ -9,4 +9,5 @@ shared_module(
     c_args : [],
     include_directories : [includes],
     dependencies: [dependency('libpq')],
+    install : true,
 )

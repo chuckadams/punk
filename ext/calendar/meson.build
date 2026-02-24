@@ -15,4 +15,5 @@ shared_module(
     name_prefix: '',
     c_args : [],
     include_directories : [includes],
+    install : true,
 )
