@@ -13,3 +13,8 @@ shared_module(
     dependencies: [dependency('libxml-2.0')],
     install : true,
 )
+
+install_headers(
+    'php_libxml.h',
+    subdir: 'ext/libxml',
+)

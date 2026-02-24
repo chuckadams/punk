@@ -12,3 +12,8 @@ shared_module(
     dependencies: [],
     install : true,
 )
+
+install_headers(
+    'php_libsodium.h',
+    subdir: 'ext/sodium',
+)

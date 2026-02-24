@@ -1,4 +1,3 @@
-
 main_sources = files(
     'debug_gdb_scripts.c',
     'explicit_bzero.c',
@@ -42,7 +41,54 @@ main_sources = files(
 main_objs = static_library(
     'main_objs',
     main_sources,
-    c_args: [],
-    include_directories: [includes],
-    build_by_default: false,
+    c_args : [],
+    include_directories : [includes],
+    build_by_default : false,
+)
+
+install_headers(
+    'SAPI.h',
+    'build-defs.h',
+    'fastcgi.h',
+    'fopen_wrappers.h',
+    'http_status_codes.h',
+    'main_arginfo.h',
+    'php.h',
+    'php_compat.h',
+    'php_config.h',
+    'php_content_types.h',
+    'php_getopt.h',
+    'php_globals.h',
+    'php_ini.h',
+    'php_ini_builder.h',
+    'php_main.h',
+    'php_memory_streams.h',
+    'php_network.h',
+    'php_odbc_utils.h',
+    'php_open_temporary_file.h',
+    'php_output.h',
+    'php_reentrancy.h',
+    'php_scandir.h',
+    'php_streams.h',
+    'php_syslog.h',
+    'php_ticks.h',
+    'php_variables.h',
+    'php_version.h',
+    'rfc1867.h',
+    'snprintf.h',
+    'spprintf.h',
+    subdir : 'main',
+)
+
+install_headers(
+    'streams/php_stream_context.h',
+    'streams/php_stream_filter_api.h',
+    'streams/php_stream_glob_wrapper.h',
+    'streams/php_stream_mmap.h',
+    'streams/php_stream_plain_wrapper.h',
+    'streams/php_stream_transport.h',
+    'streams/php_stream_userspace.h',
+    'streams/php_streams_int.h',
+    'streams/userspace_arginfo.h',
+    subdir : 'main/streams',
 )

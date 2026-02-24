@@ -29,7 +29,7 @@ sapi_cli_dependencies = [
     dependency('icu-i18n'),
     dependency('icu-io'),
     dependency('libargon2'),
-    dependency('libavif'),  # needed because of ext/standard/image.c
+    dependency('libavif'), # needed because of ext/standard/image.c
     dependency('libedit'),
     dependency('libxml-2.0'),
     dependency('openssl'),
@@ -43,10 +43,14 @@ sapi_cli_exe = executable(
     sapi_cli_all_sources,
     dependencies : sapi_cli_dependencies,
     include_directories : includes,
-    link_whole: [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs],
-    export_dynamic: true,
+    link_whole : [zend_objs, ext_hash_objs, ext_intl_objs, ext_pcre_objs],
+    export_dynamic : true,
     install : true,
 )
 
 test('sapi_cli_test_basic', sapi_cli_exe)
 
+install_headers(
+    'cli.h',
+    subdir : 'sapi/cli',
+)

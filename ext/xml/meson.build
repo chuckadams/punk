@@ -1,14 +1,20 @@
 ext_xml_sources = files(
-  'compat.c',
-  'xml.c',
+    'compat.c',
+    'xml.c',
 )
 
 shared_module(
     'xml',
     [ext_xml_sources],
-    name_prefix: '',
+    name_prefix : '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [dependency('libxml-2.0')],
+    dependencies : [dependency('libxml-2.0')],
     install : true,
+)
+
+install_headers(
+    'expat_compat.h',
+    'php_xml.h',
+    subdir : 'ext/xml',
 )
