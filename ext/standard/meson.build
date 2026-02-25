@@ -81,6 +81,7 @@ install_headers(
     'base64.h',
     'basic_functions.h',
     'basic_functions_arginfo.h',
+    'basic_functions_decl.h',
     'crc32.h',
     'crc32_x86.h',
     'credits.h',
@@ -139,9 +140,3 @@ install_headers(
     'winver.h',
     subdir: 'ext/standard',
 )
-
-# TODO: install generated headers:
-#    'datetime.h',
-#    'pack.h',
-#    'php_smart_string.h',
-#    'php_smart_string_public.h',
