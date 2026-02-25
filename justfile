@@ -4,7 +4,6 @@ platform := env('PLATFORM')
 sapi := env('BUILD_SAPI', 'cli')
 
 platform_dir := justfile_directory() / 'platform' / platform
-install_dir := env('PUNK_INSTALL_DIR', '{{prefix')
 
 meson_build_dir := '.meson-build'
 
@@ -23,7 +22,7 @@ configure:
     ./buildconf --force
     ./configure \
         --cache-file="{{platform_dir}}/config.cache" \
-        --prefix={{install_dir}} \
+        --prefix={{prefix}} \
         --disable-all \
         --enable-debug \
         --enable-re2c-cgoto \
