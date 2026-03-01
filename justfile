@@ -72,6 +72,7 @@ configure:
         --with-iodbc={{shared}} \
         --enable-pcntl={{shared}} \
         --enable-pdo={{shared}} \
+        --with-pdo-dblib={{shared}} \
         --with-pdo-firebird={{shared}} \
         --with-pdo-mysql={{shared}} \
         --with-pdo-odbc=shared,iODBC \
