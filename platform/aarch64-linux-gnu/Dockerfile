@@ -24,6 +24,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y \
 
 RUN DEBIAN_FRONTEND=noninteractive apt install -y \
     firebird-dev \
+    freetds-dev \
     libargon2-dev \
     libavif-dev \
     libbz2-dev \
