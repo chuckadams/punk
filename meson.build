@@ -13,6 +13,11 @@ cflags = [
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language : 'c')
 add_project_arguments(['-DPUNK', '-DPUNK_MESON'], language : ['c', 'cpp'])
+
+#if get_option('configure')
+#    subdir('build')
+#endif
+
 add_project_arguments('-DHAVE_MEMFD_CREATE', language : 'c')  # TODO: fix includes so this doesn't need to be global
 
 includes = include_directories(
