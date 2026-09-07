@@ -1,6 +1,7 @@
 ext_intl_sources = files(
     'intl_convert.c',
     'intl_error.c',
+    'intl_icu_compat.c',
     'php_intl.c',
     'intl_convertcpp.cpp',
     'collator/collator_attr.cpp',

@@ -1,7 +1,10 @@
 ext_date_sources = files(
     'php_date.c',
+    'php_time.c',
+    'time_duration.c',
     'lib/astro.c',
     'lib/dow.c',
+    'lib/duration.c',
     'lib/interval.c',
     'lib/parse_date.c',
     'lib/parse_iso_intervals.c',

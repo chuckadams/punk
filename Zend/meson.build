@@ -45,6 +45,7 @@ zend_sources = files(
     'zend_observer.c',
     'zend_opcode.c',
     'zend_operators.c',
+    'zend_partial.c',
     'zend_property_hooks.c',
     'zend_ptr_stack.c',
     'zend_signal.c',

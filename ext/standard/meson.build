@@ -34,6 +34,7 @@ ext_standard_sources = files(
     'image.c',
     'incomplete_class.c',
     'info.c',
+    'io_poll.c',
     'iptc.c',
     'levenshtein.c',
     'link.c',

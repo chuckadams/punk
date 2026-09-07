@@ -1,5 +1,6 @@
 sapi_cli_sources = files(
     'php_cli.c',
+    'php_cli_main.c',
     'php_cli_process_title.c',
     'php_cli_server.c',
     'php_http_parser.c',
