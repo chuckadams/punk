@@ -67,15 +67,12 @@ configure:
         --with-gmp={{shared}} \
         --with-iconv={{shared}} \
         --with-ldap={{shared}} \
-        --with-ldap-sasl \
+            --with-ldap-sasl \
         --enable-mbstring={{shared}} \
-        --with-iodbc={{shared}} \
         --enable-pcntl={{shared}} \
         --enable-pdo={{shared}} \
-        --with-pdo-dblib={{shared}} \
         --with-pdo-firebird={{shared}} \
         --with-pdo-mysql={{shared}} \
-        --with-pdo-odbc=shared,iODBC \
         --with-pdo-pgsql={{shared}} \
         --with-pdo-sqlite={{shared}} \
         --with-pgsql={{shared}} \
@@ -123,8 +120,8 @@ _sapi_phpdbg:
 
 # to-do list
 # * various *dbm packages (except gdbm, which is GPL)
-# * support pdo_dblib
-# * fix odbc test errors if easy, otherwise drop odbc entirely.
+# * support odbc (it builds, but fails many tests)
+# * support pdo_dblib (it builds, but its tests crash the whole test suite)
 # * mysqli and mysqlnd both fail to load when built as shared.  fix this.
 # * fuzzer sapi
 # * gcov, valgrind support
