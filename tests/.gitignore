@@ -1,0 +1,3 @@
+# ignore everything that hasn't been added previously or with git add -f
+
+*
