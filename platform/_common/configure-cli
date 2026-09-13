@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+here=$(dirname $0)
+cd "$here/../.."
+
+exec ./configure \
+  --prefix=/opt/punk \
+  --disable-all \
+  --enable-debug \
+  --enable-re2c-cgoto \
+  --enable-sigchild \
+  \
+  --disable-fiber-asm \
+  --disable-opcache-jit \
+  --disable-zend-max-execution-timers \
+  \
+  --enable-cli --enable-zts \
+  \
+  --with-external-pcre \
+  --with-libedit \
+  --enable-intl \
+  --with-mysqli \
+  --enable-mysqlnd \
+  --with-openssl=shared \
+  --with-openssl-argon2 \
+  --with-sqlite3=shared \
+  --with-zlib=shared \
+  --enable-bcmath=shared \
+  --with-bz2=shared \
+  --enable-calendar=shared \
+  --enable-ctype=shared \
+  --with-curl=shared \
+  --enable-dba=shared \
+  --enable-dl-test=shared \
+  --enable-dom=shared \
+  --with-enchant=shared \
+  --enable-exif=shared \
+  --with-ffi=shared \
+  --enable-fileinfo=shared \
+  --enable-filter=shared \
+  --enable-ftp=shared \
+  --enable-gd=shared \
+      --with-avif \
+      --with-webp \
+      --with-jpeg \
+      --with-xpm \
+      --with-freetype \
+  --with-gettext=shared \
+  --with-gmp=shared \
+  --with-iconv=shared \
+  --with-ldap=shared \
+      --with-ldap-sasl \
+  --enable-mbstring=shared \
+  --enable-pcntl=shared \
+  --enable-pdo=shared \
+  --with-pdo-firebird=shared \
+  --with-pdo-mysql=shared \
+  --with-pdo-pgsql=shared \
+  --with-pdo-sqlite=shared \
+  --with-pgsql=shared \
+  --enable-phar=shared \
+  --enable-posix=shared \
+  --enable-session=shared \
+  --enable-shmop=shared \
+  --enable-simplexml=shared \
+  --with-snmp=shared \
+  --enable-soap=shared \
+  --enable-sockets=shared \
+  --with-sodium=shared \
+      --with-password-argon2 \
+  --enable-sysvmsg=shared \
+  --enable-sysvsem=shared \
+  --enable-sysvshm=shared \
+  --with-tidy=shared \
+  --enable-tokenizer=shared \
+  --enable-xml=shared \
+      --with-libxml \
+  --enable-xmlreader=shared \
+  --enable-xmlwriter=shared \
+  --with-xsl=shared \
+  --enable-zend-test=shared \
+  --with-zip=shared \
+  "$@"
+
+# other SAPIs:
+# --with-apxs2 --disable-zts
+# --enable-cgi --disable-zts
+# --enable-cli --enable-zts
+# --enable-embed=shared --enable-zts
+# --enable-fpm --disable-zts
+# --enable-phpdbg --enable-phpdbg-readline

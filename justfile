@@ -1,15 +1,15 @@
+# user-configurable variables
 prefix := '/opt/punk'
 nproc := env('NPROC', num_cpus())
 platform := env('PLATFORM')
 sapi := env('BUILD_SAPI', 'cli')
 
-platform_dir := justfile_directory() / 'platform' / platform
+# internal variables
+# platform_dir := justfile_directory() / 'platform' / platform
+platform_dir := 'platform' / platform
+meson_build_dir := platform_dir / '.meson-build'
 
-meson_build_dir := '.meson-build'
-
-# not supported yet -- a number of extensions won't build statically
-# shared := if env('BUILD_STATIC', 'no') == 'no' { "shared" } else { "static" }
-shared := "shared"
+shell := platform_dir / "shell"
 
 list:
     just --list
@@ -19,104 +19,9 @@ all: rebuild install test
 rebuild: clean configure make
 
 configure:
-    ./buildconf --force
-    ./configure \
-        --cache-file="{{platform_dir}}/config.cache" \
-        --prefix={{prefix}} \
-        --disable-all \
-        --enable-debug \
-        --enable-re2c-cgoto \
-        --enable-sigchild \
-        \
-        --disable-fiber-asm \
-        --disable-opcache-jit \
-        --disable-zend-max-execution-timers \
-        \
-        $(just _sapi_{{sapi}}) \
-        \
-        --with-external-pcre \
-        --with-libedit \
-        --enable-intl \
-        --with-mysqli \
-        --enable-mysqlnd \
-        --with-openssl={{shared}} \
-        --with-openssl-argon2 \
-        --with-sqlite3={{shared}} \
-        --with-zlib={{shared}} \
-        --enable-bcmath={{shared}} \
-        --with-bz2={{shared}} \
-        --enable-calendar={{shared}} \
-        --enable-ctype={{shared}} \
-        --with-curl={{shared}} \
-        --enable-dba={{shared}} \
-        --enable-dl-test={{shared}} \
-        --enable-dom={{shared}} \
-        --with-enchant={{shared}} \
-        --enable-exif={{shared}} \
-        --with-ffi={{shared}} \
-        --enable-fileinfo={{shared}} \
-        --enable-filter={{shared}} \
-        --enable-ftp={{shared}} \
-        --enable-gd={{shared}} \
-            --with-avif \
-            --with-webp \
-            --with-jpeg \
-            --with-xpm \
-            --with-freetype \
-        --with-gettext={{shared}} \
-        --with-gmp={{shared}} \
-        --with-iconv={{shared}} \
-        --with-ldap={{shared}} \
-            --with-ldap-sasl \
-        --enable-mbstring={{shared}} \
-        --enable-pcntl={{shared}} \
-        --enable-pdo={{shared}} \
-        --with-pdo-firebird={{shared}} \
-        --with-pdo-mysql={{shared}} \
-        --with-pdo-pgsql={{shared}} \
-        --with-pdo-sqlite={{shared}} \
-        --with-pgsql={{shared}} \
-        --enable-phar={{shared}} \
-        --enable-posix={{shared}} \
-        --enable-session={{shared}} \
-        --enable-shmop={{shared}} \
-        --enable-simplexml={{shared}} \
-        --with-snmp={{shared}} \
-        --enable-soap={{shared}} \
-        --enable-sockets={{shared}} \
-        --with-sodium={{shared}} \
-            --with-password-argon2 \
-        --enable-sysvmsg={{shared}} \
-        --enable-sysvsem={{shared}} \
-        --enable-sysvshm={{shared}} \
-        --with-tidy={{shared}} \
-        --enable-tokenizer={{shared}} \
-        --enable-xml={{shared}} \
-            --with-libxml \
-        --enable-xmlreader={{shared}} \
-        --enable-xmlwriter={{shared}} \
-        --with-xsl={{shared}} \
-        --enable-zend-test={{shared}} \
-        --with-zip={{shared}} \
-        ;
+    {{shell}} ./buildconf --force
+    {{shell}} {{platform_dir}}/configure
 
-_sapi_apache:
-    @echo --with-apxs2 --disable-zts
-
-_sapi_cgi:
-   @echo --enable-cgi --disable-zts
-
-_sapi_cli:
-   @echo --enable-cli --enable-zts
-
-_sapi_embed:
-    @echo --enable-embed=shared --enable-zts
-
-_sapi_fpm:
-    @echo --enable-fpm --disable-zts
-
-_sapi_phpdbg:
-    @echo --enable-phpdbg --enable-phpdbg-readline
 
 # to-do list
 # * various *dbm packages (except gdbm, which is GPL)
@@ -139,30 +44,29 @@ _sapi_phpdbg:
 # sapis built by default: cli cgi phpdbg
 
 make:
-    make -j{{nproc}}
+    {{shell}} make -j{{nproc}}
 
 test:
-    -TEST_PHP_ARGS='-q -j{{nproc}}' make test
+    -{{shell}} make test
 
 install: _wipe-install
-    make install
-    find {{prefix}}/lib/php/extensions/* -type f
+    {{shell}} make install
+    {{shell}} find {{prefix}}/lib/php/extensions/* -type f
 
 clean:
-    # rm -f {{platform_dir}}/config.cache
-    rm -rf autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
+    rm -rf {{platform_dir}}/config.cache autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
 meson: _meson-setup _meson-compile _meson-install
 
 _meson-setup: _wipe-build
-    [ -d {{meson_build_dir}} ] || meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}
+    {{shell}} meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}
 
 _meson-compile:
-    meson compile -C {{meson_build_dir}}
+    {{shell}} meson compile -C {{meson_build_dir}}
 
 _meson-install: _wipe-install
-    meson install -C {{meson_build_dir}}
+    {{shell}} meson install -C {{meson_build_dir}}
 
 _wipe-build:
     rm -rf {{meson_build_dir}}

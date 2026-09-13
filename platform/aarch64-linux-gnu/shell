@@ -4,5 +4,10 @@
 
 set -euo pipefail
 
+if ! which docker >/dev/null 2>&1; then
+  # no docker means we're already in the container
+  exec "${@:-bash}"
+fi
+
 cd $(dirname $0)
 exec docker compose run --rm ${DOCKER_ARGS:-} punk "${@:-bash}"
