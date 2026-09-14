@@ -54,8 +54,6 @@ php_config_template = files('build/php_config.h.in')
 
 subdir('build')
 
-add_project_arguments('-DHAVE_MEMFD_CREATE', language : 'c')  # TODO: fix includes so this doesn't need to be global
-
 includes = include_directories(
     '.',
     'main',
