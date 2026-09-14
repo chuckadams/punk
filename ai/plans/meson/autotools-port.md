@@ -4,9 +4,11 @@ Goal: `php_config.h` and every other configure output come from meson, every m4
 file is deleted, and logic that lived in m4 moves to meson or to support scripts
 in bash/python.
 
-Status: **phases 1-3 done** (meson generates a config header covering 429 of
-autoconf's 449 symbols, with no value mismatches and no symbols autoconf does not
-have), phases 4-6 planned below.  Five artifacts are still borrowed from
+Status: **phases 1-4 done — `just compare-config` reports no differences.**  The
+meson-generated header reproduces autoconf's symbol for symbol (445 defined here
+against 449 there, the difference being five deliberate omissions recorded in the
+comparison tool), so what is left is the other generated files (phase 5) and the
+switch-over plus deletion (phase 6).  Five artifacts are still borrowed from
 autoconf; they are the finish line.
 
 ## Where configuration belongs in meson
@@ -207,11 +209,26 @@ Measured after phase 2: autoconf 449 defined, meson 351.
 - tidy keeps its headers in `/usr/include/tidy` and its `.pc` omits that path, so
   the checks pass it explicitly, matching what ext/tidy/meson.build already does.
 
-Measured after phase 3: autoconf 449 defined, meson 429, still no value
-mismatches and no extra symbols.  The remaining 20 are the phase 4 work (7
-runtime probes, 6 compiler-capability checks, 3 computed `ZEND_MM_ALIGNMENT`
-values) and the 5 to delete rather than port (`LT_OBJDIR`, `STDC_HEADERS`,
-`HAVE_PRESERVE_NONE`, `HAVE_DECL_P_JAILID`, `HAVE_USERFAULTFD_WRITEFAULT`).
+Measured after phase 3: autoconf 449 defined, meson 429.
+
+**Phase 4 — runtime probes, compiler capabilities, computed values.** Done:
+- Compiler capabilities: `HAVE_FUNC_ATTRIBUTE_IFUNC`/`_VISIBILITY` come from
+  meson's own attribute checks, `_TARGET` (which meson's table does not know) from
+  asking the compiler with `__has_attribute`, and `HAVE_ALIGNOF`,
+  `HAVE_ASM_GOTO` and `HAVE_ATTRIBUTE_ALIGNED` from small compile probes.
+- The probes that autoconf answered by compiling *and running* a program are
+  compile-time where the answer is a property of the declarations --
+  `STRERROR_R_CHAR_P` via `_Generic`, `COOKIE_SEEKER_USES_OFF64_T` via
+  `cookie_io_functions_t`, `HAVE_FUNC_GETHOSTBYNAME_R_6` via the six-argument
+  call -- and genuinely run only for `PHP_WRITE_STDOUT` and the memory manager
+  alignment, which prints its three values for meson to parse.
+- The runtime answers a cross build cannot obtain are declared per platform in
+  `runtime_answers`, with an undeclared platform a hard error rather than a guess.
+- `PHP_USE_PHP_CRYPT_R` turns out not to be a runtime question at all: it follows
+  from not passing `--with-external-libcrypt`, and `PHP_CAN_SUPPORT_PROC_OPEN`
+  from `fork` being present.
+
+Measured after phase 4: **no differences**.  The gate is green.
 
 **Phase 4 — runtime and struct probes.** Per-platform answer table for the 36
 `AC_RUN_IFELSE` checks, `cc.has_member` for the struct details, `cc.compiles` for

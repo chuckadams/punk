@@ -17,6 +17,16 @@ from collections import Counter
 # machines or at different times.
 VOLATILE = {'PHP_UNAME', 'PHP_BUILD_SYSTEM', 'PHP_BUILD_DATE'}
 
+# Symbols the port deliberately does not reproduce, with the reason.  Listed here
+# rather than silently dropped, so the diff stays a completion gate.
+NOT_PORTED = {
+    'LT_OBJDIR': 'libtool leftover',
+    'STDC_HEADERS': 'pre-C89 leftover',
+    'HAVE_PRESERVE_NONE': 'unused',
+    'HAVE_DECL_P_JAILID': 'FreeBSD only',
+    'HAVE_USERFAULTFD_WRITEFAULT': 'phpdbg, not built by punk',
+}
+
 DEFINE = re.compile(r'^#define\s+([A-Za-z_][A-Za-z0-9_]*)[ \t]*(.*)$')
 UNDEF = re.compile(r'^/\*\s*#undef\s+([A-Za-z_][A-Za-z0-9_]*)\s*\*/')
 
@@ -55,7 +65,8 @@ def main():
     auto_def, auto_undef = parse(auto_path)
     meson_def, _ = parse(meson_path)
 
-    missing = {n: v for n, v in auto_def.items() if n not in meson_def}
+    missing = {n: v for n, v in auto_def.items()
+               if n not in meson_def and n not in NOT_PORTED}
     differing = {n: (v, meson_def[n]) for n, v in auto_def.items()
                  if n in meson_def and meson_def[n] != v and n not in VOLATILE}
     extra = {n: v for n, v in meson_def.items() if n not in auto_def and n not in auto_undef}

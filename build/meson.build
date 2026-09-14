@@ -919,6 +919,133 @@ cdata.set('PCRE2_CODE_UNIT_WIDTH', 8)
 cdata.set('HAVE_HUGE_CODE_PAGES', 1)
 cdata.set_quoted('PHP_ICONV_IMPL', 'glibc')
 
+# ---- compiler capabilities -------------------------------------------------
+# What PHP_FUNC_ATTRIBUTE / ax_gcc_func_attribute.m4 and the alignof/goto probes
+# asked the compiler for.
+foreach attr : [
+    ['HAVE_FUNC_ATTRIBUTE_IFUNC', 'ifunc'],
+    ['HAVE_FUNC_ATTRIBUTE_VISIBILITY', 'visibility'],
+]
+    if cc.has_function_attribute(attr[1])
+        cdata.set(attr[0], 1)
+    endif
+endforeach
+
+# meson's attribute table has no "target", so that one is asked of the compiler
+# directly.  Both gcc and clang answer __has_attribute().
+attribute_probes = [
+    ['HAVE_FUNC_ATTRIBUTE_TARGET', '#ifndef __has_attribute\n# define __has_attribute(x) 0\n#endif\n#if !__has_attribute(target)\n# error "no target attribute"\n#endif\nint main(void) { return 0; }'],
+]
+
+foreach probe : attribute_probes
+    if cc.compiles(probe[1], args : check_args, name : probe[0])
+        cdata.set(probe[0], 1)
+    endif
+endforeach
+
+compiler_probes = [
+    ['HAVE_ALIGNOF', 'int main(void) { return (int) __alignof__(int); }'],
+    ['HAVE_ASM_GOTO', 'int main(void) { asm goto("" :::: label); label: return 0; }'],
+    ['HAVE_ATTRIBUTE_ALIGNED', 'int x __attribute__((aligned(8))); int main(void) { return (int) (long) &x; }'],
+    # XSI strerror_r returns char * (glibc, with _GNU_SOURCE) rather than int
+    ['STRERROR_R_CHAR_P',
+     '#include<string.h>\n_Static_assert(_Generic(strerror_r(0, (char[1]){0}, 1), char * : 1, default : 0), "strerror_r does not return char *");\nint main(void) { return 0; }'],
+    # fopencookie's seeker takes off64_t once _FILE_OFFSET_BITS is 64
+    ['COOKIE_SEEKER_USES_OFF64_T',
+     '#include<stdio.h>\nstatic int seek(void *c, off64_t *o, int w) { (void) c; (void) o; (void) w; return 0; }\nint main(void) { cookie_io_functions_t f = { .seek = seek }; (void) f; return 0; }'],
+    # the six-argument flavour of gethostbyname_r
+    ['HAVE_FUNC_GETHOSTBYNAME_R_6',
+     '#include<netdb.h>\nint main(void) { struct hostent h; struct hostent *r; char buf[1]; int e; return gethostbyname_r("x", &h, buf, sizeof buf, &r, &e); }'],
+]
+
+foreach probe : compiler_probes
+    if cc.compiles(probe[1], args : check_args, name : probe[0])
+        cdata.set(probe[0], 1)
+    endif
+endforeach
+
+# ---- runtime probes --------------------------------------------------------
+# These are questions about behaviour, not availability, which is why autoconf
+# compiled and ran a program for each.  Natively meson does the same; there is
+# nothing to run when cross-compiling, so those answers are declared per platform
+# and an undeclared platform is a hard error rather than a guess.
+runtime_answers = {
+    'linux': {
+        'ICONV_BROKEN_IGNORE': 1,          # glibc's //IGNORE silently drops input
+        'ZEND_MM_ALIGNMENT': '(size_t)8',
+        'ZEND_MM_ALIGNMENT_LOG2': '(size_t)3',
+        'ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT': 0,
+    },
+}
+
+if meson.is_cross_build()
+    if not runtime_answers.has_key(host_machine.system())
+        error('no declared runtime answers for ' + host_machine.system() + '; add them to runtime_answers in build/meson.build')
+    endif
+    foreach name, value : runtime_answers[host_machine.system()]
+        cdata.set(name, value)
+    endforeach
+else
+    # Can PHP write to the standard output at all (the CLI SAPI cares)?
+    write_stdout = cc.run(
+        '#include<unistd.h>\nint main(void) { return write(1, "ok", 2) == 2 ? 0 : 1; }',
+        args : check_args,
+        name : 'PHP_WRITE_STDOUT',
+    )
+    if write_stdout.compiled() and write_stdout.returncode() == 0 and write_stdout.stdout().strip() == 'ok'
+        cdata.set('PHP_WRITE_STDOUT', 1)
+    endif
+
+    # Memory manager alignment: the alignment of a union of pointer, double and
+    # long, its base-2 logarithm, and whether it is too small to be useful.
+    align = cc.run(
+        '#include<stdio.h>\n' +
+        'typedef union { void *ptr; double dbl; long lng; } mm_align_test;\n' +
+        'int main(void) {\n' +
+        '  size_t i = __alignof__(mm_align_test);\n' +
+        '  int zeros = 0;\n' +
+        '  while (i & ~(size_t) 1) { zeros++; i >>= 1; }\n' +
+        '  printf("%zu %d %d\\n", __alignof__(mm_align_test), zeros, __alignof__(mm_align_test) < 4);\n' +
+        '  return 0;\n' +
+        '}',
+        args : check_args,
+        name : 'ZEND_MM_ALIGNMENT',
+    )
+    if align.compiled() and align.returncode() == 0
+        parts = align.stdout().strip().split()
+        if parts.length() != 3
+            error('could not determine the memory manager alignment')
+        endif
+        cdata.set('ZEND_MM_ALIGNMENT', '(size_t)' + parts[0])
+        cdata.set('ZEND_MM_ALIGNMENT_LOG2', '(size_t)' + parts[1])
+        cdata.set('ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT', parts[2])
+    else
+        error('could not run the memory manager alignment probe')
+    endif
+
+    foreach name, value : runtime_answers[host_machine.system()]
+        cdata.set(name, value)
+    endforeach
+endif
+
+# fork() is what proc_open needs on this side of the world.
+if cdata.has('HAVE_FORK')
+    cdata.set('PHP_CAN_SUPPORT_PROC_OPEN', 1)
+endif
+
+# Punk builds crypt itself rather than linking an external libcrypt, which is
+# what the absent --with-external-libcrypt means; it becomes an option when
+# somebody wants the external one.
+cdata.set('PHP_USE_PHP_CRYPT_R', 1)
+
+# ---- deliberately not ported ----------------------------------------------
+# LT_OBJDIR, STDC_HEADERS       libtool and pre-C89 leftovers
+# HAVE_PRESERVE_NONE            unused
+# HAVE_DECL_P_JAILID            FreeBSD only
+# HAVE_USERFAULTFD_WRITEFAULT   phpdbg, which punk does not build
+# scripts/dev/compare-config-headers knows about these, so `just compare-config`
+# still reads as a completion gate.
+
 configure_file(
     input : 'php_config.h.in',
     output : 'php_config.h',
