@@ -15,6 +15,8 @@ json_parser_gen = custom_target(
     command: [bison, '-Wall', '--defines', '-l', '@INPUT@', '-o', '@OUTPUT0@'],
 )
 
+json_arginfo_gen = custom_target('json_arginfo', input: 'json.stub.php', output: 'json_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_json_sources = files(
     'json.c',
     'json_encoder.c',

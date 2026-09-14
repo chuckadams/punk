@@ -8,12 +8,19 @@ ext_soap_sources = files(
   'soap.c',
 )
 
+soap_arginfo_gen = custom_target(
+    'soap_arginfo',
+    input: 'soap.stub.php',
+    output: [ 'soap_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 shared_module(
     'soap',
-    [ext_soap_sources],
+    [ext_soap_sources, soap_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0')],
     install : true,
 )

@@ -11,6 +11,8 @@ ext_random_sources = files(
     'zend_utils.c',
 )
 
+random_arginfo_gen = custom_target('random_arginfo', input: 'random.stub.php', output: ['random_arginfo.h', 'random_decl.h'], command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/random')
+
 if not cli_static_extensions.contains('random')
     shared_module(
         'random',
@@ -26,6 +28,5 @@ install_headers(
     'php_random.h',
     'php_random_csprng.h',
     'php_random_uint128.h',
-    'random_decl.h',
     subdir: 'php/ext/random',
 )

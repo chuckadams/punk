@@ -1,3 +1,5 @@
+php_uri_arginfo_gen = custom_target('php_uri_arginfo', input: 'php_uri.stub.php', output: ['php_uri_arginfo.h', 'php_uri_decl.h'], command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/uri')
+
 ext_uri_sources = files(
     'php_uri.c',
     'php_uri_common.c',
@@ -52,7 +54,6 @@ endif
 install_headers(
     'php_uri.h',
     'php_uri_common.h',
-    'php_uri_decl.h',
     'uri_parser_php_parse_url.h',
     'uri_parser_rfc3986.h',
     'uri_parser_whatwg.h',

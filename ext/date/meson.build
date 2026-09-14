@@ -26,11 +26,16 @@ ext_date_c_args = ['-DHAVE_TIMELIB_CONFIG_H=1']
 # php_date.h reaches it from other extensions too, so it is not ext/date's alone.
 subdir('lib')
 
+php_date_arginfo_gen = custom_target('php_date_arginfo', input: 'php_date.stub.php', output: 'php_date_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+time_arginfo_gen = custom_target('time_arginfo', input: 'time.stub.php', output: 'time_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_date_objs = static_library(
     'ext_date_objs',
     ext_date_sources,
+    php_date_arginfo_gen[0],
+    time_arginfo_gen[0],
     c_args : ext_date_c_args + static_c_args,
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     build_by_default : false,
 )
 

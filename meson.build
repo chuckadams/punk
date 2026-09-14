@@ -52,6 +52,18 @@ cli_static_extensions = [
 php_config_defs = configuration_data()
 php_config_template = files('build/php_config.h.in')
 
+# Codegen helpers shared by every directory that generates arginfo headers from
+# a .stub.php file (and by the VM generator).
+gen_stub_sh = meson.project_source_root() / 'build' / 'gen-stub.sh'
+gen_stub_php = meson.project_source_root() / 'build' / 'gen_stub.php'
+
+# The installed header prefix, used as install_dir by the custom_targets that
+# install generated headers (install_headers rejects custom_target outputs).
+php_includedir = get_option('includedir')
+if not php_includedir.startswith('/')
+    php_includedir = get_option('prefix') / php_includedir
+endif
+
 subdir('build')
 
 includes = include_directories(
@@ -75,6 +87,21 @@ includes = include_directories(
     'ext/json',
     'ext/pdo',
     'ext/phar',
+    # arginfo headers are generated into each extension's build directory, but
+    # the statically-linked extensions below compile their sources straight into
+    # punk (via punk_frontend_sources) with only these includes, so their own
+    # directory has to be here for the same-directory #include "foo_arginfo.h"
+    # to resolve.  (date, hash, intl and pcre build a static library and add '.'
+    # locally instead.)
+    'ext/opcache',
+    'ext/random',
+    'ext/reflection',
+    'ext/spl',
+    'ext/uri',
+    'ext/libxml',
+    'ext/readline',
+    'ext/mysqli',
+    'main/streams',
 )
 
 
@@ -203,6 +230,31 @@ punk_frontend_sources = [
     ext_spl_sources,
     ext_standard_sources,
     ext_uri_sources,
+]
+
+# Generated arginfo headers for the statically-linked extensions and the core,
+# listed so ninja builds them before compiling the sources that #include them.
+# (intl is deliberately absent: its arginfo lives in subdirectories with mixed
+# include styles, so it still uses the committed files for now.)
+punk_frontend_arginfo = [
+    main_arginfo_gen[0],
+    stream_errors_gen[0], stream_errors_gen[1],
+    userspace_arginfo_gen[0],
+    json_arginfo_gen[0],
+    opcache_arginfo_gen[0],
+    libxml_arginfo_gen[0],
+    mysqli_arginfo_gen[0],
+    readline_arginfo_gen[0],
+    random_arginfo_gen[0], random_arginfo_gen[1],
+    php_reflection_arginfo_gen[0], php_reflection_arginfo_gen[1],
+    php_spl_arginfo_gen[0], spl_array_arginfo_gen[0], spl_directory_arginfo_gen[0],
+    spl_dllist_arginfo_gen[0], spl_exceptions_arginfo_gen[0], spl_fixedarray_arginfo_gen[0],
+    spl_heap_arginfo_gen[0], spl_iterators_arginfo_gen[0], spl_observer_arginfo_gen[0],
+    basic_functions_arginfo_gen[0], basic_functions_arginfo_gen[1],
+    dir_arginfo_gen[0], dl_arginfo_gen[0], file_arginfo_gen[0],
+    io_poll_arginfo_gen[0], io_poll_arginfo_gen[1],
+    password_arginfo_gen[0], user_filters_arginfo_gen[0],
+    php_uri_arginfo_gen[0], php_uri_arginfo_gen[1],
 ]
 
 punk_frontend_dependencies = [

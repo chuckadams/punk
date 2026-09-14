@@ -1,4 +1,6 @@
 # EXTRA_FLAGS="-I./ext/pcre -Wno-implicit-fallthrough -DHAVE_CONFIG_H -DHAVE_MEMMOVE" cc_ \
+php_pcre_arginfo_gen = custom_target('php_pcre_arginfo', input: 'php_pcre.stub.php', output: 'php_pcre_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_pcre_sources = files(
     'php_pcre.c',
 
@@ -36,8 +38,9 @@ ext_pcre_sources = files(
 ext_pcre_objs = static_library(
     'ext_pcre_objs',
     ext_pcre_sources,
+    php_pcre_arginfo_gen[0],
     c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'] + static_c_args,
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies : [dependency('libpcre2-8')],
     build_by_default : false,
 )

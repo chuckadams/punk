@@ -18,12 +18,19 @@ ext_phar_sources = files(
   'zip.c',
 ) + [phar_path_check_gen[0]]
 
+phar_object_arginfo_gen = custom_target(
+    'phar_object_arginfo',
+    input: 'phar_object.stub.php',
+    output: [ 'phar_object_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 shared_module(
     'phar',
-    [ext_phar_sources],
+    [ext_phar_sources, phar_object_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies: [],
     install : true,
 )

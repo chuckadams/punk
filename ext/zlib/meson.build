@@ -1,3 +1,10 @@
+zlib_arginfo_gen = custom_target(
+    'zlib_arginfo',
+    input: 'zlib.stub.php',
+    output: [ 'zlib_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_zlib_sources = files(
   'zlib.c',
   'zlib_filter.c',
@@ -6,10 +13,10 @@ ext_zlib_sources = files(
 
 shared_module(
     'zlib',
-    [ext_zlib_sources],
+    [ext_zlib_sources, zlib_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies: [],
     install : true,
 )

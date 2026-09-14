@@ -186,7 +186,6 @@ install_headers(
     'fastcgi.h',
     'fopen_wrappers.h',
     'http_status_codes.h',
-    'main_arginfo.h',
     'php.h',
     'php_compat.h',
     php_config_h,
@@ -227,8 +226,14 @@ install_headers(
     'streams/php_stream_transport.h',
     'streams/php_stream_userspace.h',
     'streams/php_streams_int.h',
-    'streams/stream_errors_arginfo.h',
-    'streams/stream_errors_decl.h',
-    'streams/userspace_arginfo.h',
     subdir : 'php/main/streams',
 )
+
+# Arginfo headers generated from the .stub.php files.  They land flat in this
+# directory's build dir (the stubs live in streams/, but the wrapper flattens the
+# basename) and are installed to their source subdirectory.  The front-ends list
+# them as sources (see the root meson.build) so ninja builds them before the
+# sources that #include them.
+main_arginfo_gen = custom_target('main_arginfo', input: 'main.stub.php', output: 'main_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/main')
+stream_errors_gen = custom_target('stream_errors_arginfo', input: 'streams/stream_errors.stub.php', output: ['stream_errors_arginfo.h', 'stream_errors_decl.h'], command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/main/streams')
+userspace_arginfo_gen = custom_target('userspace_arginfo', input: 'streams/userspace.stub.php', output: 'userspace_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/main/streams')

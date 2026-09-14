@@ -7,6 +7,13 @@ mysql_sql_parser_gen = custom_target(
     command: [re2c, '--no-generation-date', '-W', '-g', '-o', '@OUTPUT@', '@INPUT@'],
 )
 
+pdo_mysql_arginfo_gen = custom_target(
+    'pdo_mysql_arginfo',
+    input: 'pdo_mysql.stub.php',
+    output: [ 'pdo_mysql_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_pdo_mysql_sources = files(
   'mysql_driver.c',
   'mysql_statement.c',
@@ -15,10 +22,10 @@ ext_pdo_mysql_sources = files(
 
 shared_module(
     'pdo_mysql',
-    [ext_pdo_mysql_sources],
+    [ext_pdo_mysql_sources, pdo_mysql_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies: [],
     install : true,
 )

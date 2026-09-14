@@ -146,11 +146,6 @@ php = find_program('php')
 # including the .c.  The headers have to be installed because zend_compile.h
 # (reached from php.h via zend_modules.h) includes zend_vm_opcodes.h.  The stray
 # .c in the include tree is harmless.
-php_includedir = get_option('includedir')
-if not php_includedir.startswith('/')
-    php_includedir = get_option('prefix') / php_includedir
-endif
-
 zend_vm_gen = custom_target(
     'zend_vm',
     input : ['zend_vm_def.h', 'zend_vm_execute.skl', 'zend_vm_gen.php'],
@@ -161,6 +156,20 @@ zend_vm_gen = custom_target(
     install_dir : php_includedir / 'php/Zend',
 )
 
+# The arginfo headers are generated from the .stub.php files; they are installed
+# here (install_headers rejects custom_target outputs), and zend_objs lists them
+# as sources so ninja builds them before the .c files that #include them.
+zend_attributes_arginfo_gen = custom_target('zend_attributes_arginfo', input: 'zend_attributes.stub.php', output: 'zend_attributes_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_builtin_functions_arginfo_gen = custom_target('zend_builtin_functions_arginfo', input: 'zend_builtin_functions.stub.php', output: 'zend_builtin_functions_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_closures_arginfo_gen = custom_target('zend_closures_arginfo', input: 'zend_closures.stub.php', output: 'zend_closures_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_constants_arginfo_gen = custom_target('zend_constants_arginfo', input: 'zend_constants.stub.php', output: 'zend_constants_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_enum_arginfo_gen = custom_target('zend_enum_arginfo', input: 'zend_enum.stub.php', output: 'zend_enum_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_exceptions_arginfo_gen = custom_target('zend_exceptions_arginfo', input: 'zend_exceptions.stub.php', output: 'zend_exceptions_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_fibers_arginfo_gen = custom_target('zend_fibers_arginfo', input: 'zend_fibers.stub.php', output: 'zend_fibers_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_generators_arginfo_gen = custom_target('zend_generators_arginfo', input: 'zend_generators.stub.php', output: 'zend_generators_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_interfaces_arginfo_gen = custom_target('zend_interfaces_arginfo', input: 'zend_interfaces.stub.php', output: 'zend_interfaces_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+zend_weakrefs_arginfo_gen = custom_target('zend_weakrefs_arginfo', input: 'zend_weakrefs.stub.php', output: 'zend_weakrefs_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/Zend')
+
 zend_objs = static_library(
     'zend_objs',
     zend_sources,
@@ -169,6 +178,16 @@ zend_objs = static_library(
     zend_language_parser_gen[0],
     zend_language_scanner_gen[0],
     zend_vm_gen[1],
+    zend_attributes_arginfo_gen[0],
+    zend_builtin_functions_arginfo_gen[0],
+    zend_closures_arginfo_gen[0],
+    zend_constants_arginfo_gen[0],
+    zend_enum_arginfo_gen[0],
+    zend_exceptions_arginfo_gen[0],
+    zend_fibers_arginfo_gen[0],
+    zend_generators_arginfo_gen[0],
+    zend_interfaces_arginfo_gen[0],
+    zend_weakrefs_arginfo_gen[0],
     c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
@@ -183,38 +202,30 @@ install_headers(
     'zend_ast.h',
     'zend_atomic.h',
     'zend_attributes.h',
-    'zend_attributes_arginfo.h',
-    'zend_autoload.h',
+        'zend_autoload.h',
     'zend_bitset.h',
     'zend_build.h',
     'zend_builtin_functions.h',
-    'zend_builtin_functions_arginfo.h',
-    'zend_call_stack.h',
+        'zend_call_stack.h',
     'zend_closures.h',
-    'zend_closures_arginfo.h',
-    'zend_compile.h',
+        'zend_compile.h',
     zend_config_h,
     'zend_config.w32.h',
     'zend_constants.h',
-    'zend_constants_arginfo.h',
-    'zend_cpuinfo.h',
+        'zend_cpuinfo.h',
     'zend_dtrace.h',
     'zend_enum.h',
-    'zend_enum_arginfo.h',
-    'zend_errors.h',
+        'zend_errors.h',
     'zend_exceptions.h',
-    'zend_exceptions_arginfo.h',
-    'zend_execute.h',
+        'zend_execute.h',
     'zend_extensions.h',
     'zend_fibers.h',
-    'zend_fibers_arginfo.h',
-    'zend_float.h',
+        'zend_float.h',
     'zend_frameless_function.h',
     'zend_gc.h',
     'zend_gdb.h',
     'zend_generators.h',
-    'zend_generators_arginfo.h',
-    'zend_globals.h',
+        'zend_globals.h',
     'zend_globals_macros.h',
     'zend_hash.h',
     'zend_highlight.h',
@@ -223,8 +234,7 @@ install_headers(
     'zend_ini.h',
     'zend_ini_scanner.h',
     'zend_interfaces.h',
-    'zend_interfaces_arginfo.h',
-    'zend_iterators.h',
+        'zend_iterators.h',
     'zend_language_scanner.h',
     'zend_lazy_objects.h',
     'zend_list.h',
@@ -275,8 +285,7 @@ install_headers(
     'zend_vm_trace_lines.h',
     'zend_vm_trace_map.h',
     'zend_weakrefs.h',
-    'zend_weakrefs_arginfo.h',
-    subdir : 'php/Zend',
+        subdir : 'php/Zend',
 )
 
 install_headers(

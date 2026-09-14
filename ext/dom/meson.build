@@ -1,3 +1,10 @@
+php_dom_arginfo_gen = custom_target(
+    'php_dom_arginfo',
+    input: 'php_dom.stub.php',
+    output: [ 'php_dom_arginfo.h', 'php_dom_decl.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_dom_sources = files(
   'attr.c',
   'cdatasection.c',
@@ -40,10 +47,10 @@ ext_dom_sources = files(
 
 shared_module(
     'dom',
-    [ext_dom_sources],
+    [ext_dom_sources, php_dom_arginfo_gen[0], php_dom_arginfo_gen[1]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0')],
     install : true,
 )

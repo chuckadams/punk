@@ -1,3 +1,10 @@
+gd_arginfo_gen = custom_target(
+    'gd_arginfo',
+    input: 'gd.stub.php',
+    output: [ 'gd_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_gd_sources = files(
     'gd.c',
     'libgd/gd_avif.c',
@@ -75,10 +82,10 @@ ext_gd_sources = files(
 
 shared_module(
     'gd',
-    [ext_gd_sources],
+    [ext_gd_sources, gd_arginfo_gen[0]],
     name_prefix : '',
     c_args : [],
-    include_directories : [includes, 'libgd', 'libgd/ftraster'],
+    include_directories : [includes, 'libgd', 'libgd/ftraster', '.'],
     dependencies : [
         dependency('freetype2'),
         dependency('libavif'),

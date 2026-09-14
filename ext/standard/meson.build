@@ -1,3 +1,11 @@
+basic_functions_arginfo_gen = custom_target('basic_functions_arginfo', input: 'basic_functions.stub.php', output: ['basic_functions_arginfo.h', 'basic_functions_decl.h'], command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+dir_arginfo_gen = custom_target('dir_arginfo', input: 'dir.stub.php', output: 'dir_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+dl_arginfo_gen = custom_target('dl_arginfo', input: 'dl.stub.php', output: 'dl_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+file_arginfo_gen = custom_target('file_arginfo', input: 'file.stub.php', output: 'file_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+io_poll_arginfo_gen = custom_target('io_poll_arginfo', input: 'io_poll.stub.php', output: ['io_poll_arginfo.h', 'io_poll_decl.h'], command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+password_arginfo_gen = custom_target('password_arginfo', input: 'password.stub.php', output: 'password_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+user_filters_arginfo_gen = custom_target('user_filters_arginfo', input: 'user_filters.stub.php', output: 'user_filters_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php], install: true, install_dir: php_includedir / 'php/ext/standard')
+
 ext_standard_sources = files(
     'array.c',
     'assert.c',
@@ -97,9 +105,7 @@ ext_standard_objs = static_library(
 install_headers(
     'base64.h',
     'basic_functions.h',
-    'basic_functions_arginfo.h',
-    'basic_functions_decl.h',
-    'crc32.h',
+            'crc32.h',
     'crc32_x86.h',
     'credits.h',
     'credits_ext.h',
@@ -107,24 +113,18 @@ install_headers(
     'crypt_blowfish.h',
     'crypt_freesec.h',
     'css.h',
-    'dir_arginfo.h',
-    'dl.h',
-    'dl_arginfo.h',
-    'exec.h',
+        'dl.h',
+        'exec.h',
     'file.h',
-    'file_arginfo.h',
-    'flock_compat.h',
+        'flock_compat.h',
     'fsock.h',
     'head.h',
     'html.h',
     'html_tables.h',
     'info.h',
-    'io_poll_arginfo.h',
-    'io_poll_decl.h',
-    'md5.h',
+            'md5.h',
     'pageinfo.h',
-    'password_arginfo.h',
-    'php_array.h',
+        'php_array.h',
     'php_assert.h',
     'php_browscap.h',
     'php_crypt.h',
@@ -155,7 +155,6 @@ install_headers(
     'streamsfuncs.h',
     'url.h',
     'url_scanner_ex.h',
-    'user_filters_arginfo.h',
-    'winver.h',
+        'winver.h',
     subdir: 'php/ext/standard',
 )

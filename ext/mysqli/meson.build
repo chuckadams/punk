@@ -1,3 +1,5 @@
+mysqli_arginfo_gen = custom_target('mysqli_arginfo', input: 'mysqli.stub.php', output: 'mysqli_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_mysqli_sources = files(
     'mysqli.c',
     'mysqli_api.c',

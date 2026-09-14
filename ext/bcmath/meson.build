@@ -1,3 +1,10 @@
+bcmath_arginfo_gen = custom_target(
+    'bcmath_arginfo',
+    input: 'bcmath.stub.php',
+    output: [ 'bcmath_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_bcmath_sources = files(
     'bcmath.c',
     'libbcmath/src/add.c',
@@ -27,9 +34,9 @@ ext_bcmath_sources = files(
 
 shared_module(
     'bcmath',
-    [ext_bcmath_sources],
+    [ext_bcmath_sources, bcmath_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     install : true,
 )

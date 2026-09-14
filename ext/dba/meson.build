@@ -1,3 +1,10 @@
+dba_arginfo_gen = custom_target(
+    'dba_arginfo',
+    input: 'dba.stub.php',
+    output: [ 'dba_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_dba_sources = files(
   'dba.c',
   'dba_cdb.c',
@@ -22,9 +29,9 @@ ext_dba_sources = files(
 
 shared_module(
     'dba',
-    [ext_dba_sources],
+    [ext_dba_sources, dba_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     install : true,
 )

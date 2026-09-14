@@ -1,3 +1,10 @@
+tidy_arginfo_gen = custom_target(
+    'tidy_arginfo',
+    input: 'tidy.stub.php',
+    output: [ 'tidy_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_tidy_sources = files(
   'tidy.c',
 )
@@ -7,10 +14,10 @@ ext_tidy_extra_includes = run_command('sh', '-c', 'for d in /usr/include/tidy; d
 
 shared_module(
     'tidy',
-    [ext_tidy_sources],
+    [ext_tidy_sources, tidy_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes, ext_tidy_extra_includes],
+    include_directories : [includes, '.', ext_tidy_extra_includes],
     dependencies: [dependency('tidy')],
     install : true,
 )

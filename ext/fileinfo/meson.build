@@ -1,3 +1,10 @@
+fileinfo_arginfo_gen = custom_target(
+    'fileinfo_arginfo',
+    input: 'fileinfo.stub.php',
+    output: [ 'fileinfo_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_fileinfo_sources = files(
 #  'data_file.c',
   'fileinfo.c',
@@ -26,9 +33,9 @@ ext_fileinfo_sources = files(
 
 shared_module(
     'fileinfo',
-    [ext_fileinfo_sources],
+    [ext_fileinfo_sources, fileinfo_arginfo_gen[0]],
     name_prefix: '',
     c_args : [],
-    include_directories : [includes],
+    include_directories : [includes, '.'],
     install : true,
 )

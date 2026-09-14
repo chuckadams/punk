@@ -1,4 +1,6 @@
 
+hash_arginfo_gen = custom_target('hash_arginfo', input: 'hash.stub.php', output: 'hash_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_hash_sources = files(
     'sha3/generic64lc/KeccakP-1600-opt64.c',
     'sha3/generic64lc/KeccakHash.c',
@@ -28,8 +30,9 @@ ext_hash_sources = files(
 ext_hash_objs = static_library(
     'ext_hash_objs',
     ext_hash_sources,
+    hash_arginfo_gen[0],
     c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'] + static_c_args,
-    include_directories: [includes, 'sha3/generic64lc'],
+    include_directories: [includes, 'sha3/generic64lc', '.'],
     build_by_default: false,
 )
 

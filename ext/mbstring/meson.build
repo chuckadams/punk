@@ -1,3 +1,10 @@
+mbstring_arginfo_gen = custom_target(
+    'mbstring_arginfo',
+    input: 'mbstring.stub.php',
+    output: [ 'mbstring_arginfo.h' ],
+    command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php],
+)
+
 ext_mbstring_sources = files(
   'libmbfl/filters/html_entities.c',
   'libmbfl/filters/mbfilter_7bit.c',
@@ -45,10 +52,10 @@ subdir('libmbfl')
 
 shared_module(
     'mbstring',
-    [ext_mbstring_sources],
+    [ext_mbstring_sources, mbstring_arginfo_gen[0]],
     name_prefix: '',
     c_args : ['-DONIG_ESCAPE_UCHAR_COLLISION=1', '-DUChar=OnigUChar'],
-    include_directories : [includes, 'libmbfl', 'libmbfl/mbfl'],
+    include_directories : [includes, 'libmbfl', 'libmbfl/mbfl', '.'],
     dependencies: [dependency('oniguruma')],
     install : true,
 )

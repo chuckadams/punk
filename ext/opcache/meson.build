@@ -1,3 +1,5 @@
+opcache_arginfo_gen = custom_target('opcache_arginfo', input: 'opcache.stub.php', output: 'opcache_arginfo.h', command: [find_program('sh'), gen_stub_sh, '@INPUT@', '@OUTDIR@', gen_stub_php])
+
 ext_opcache_sources = files(
     'ZendAccelerator.c',
     'shared_alloc_mmap.c',
