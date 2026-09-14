@@ -56,5 +56,5 @@ endif
 
 install_headers(
     'php_pcre.h',
-    subdir : 'ext/pcre',
+    subdir : 'php/ext/pcre',
 )

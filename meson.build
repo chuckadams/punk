@@ -183,5 +183,6 @@ punk_frontend_link_whole = [
     ext_pcre_objs,
 ]
 
+subdir('scripts')
 subdir('sapi/cli')
 subdir('sapi/cgi')

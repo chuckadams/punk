@@ -119,6 +119,7 @@ install_headers(
     'zend_atomic.h',
     'zend_attributes.h',
     'zend_attributes_arginfo.h',
+    'zend_autoload.h',
     'zend_bitset.h',
     'zend_build.h',
     'zend_builtin_functions.h',
@@ -179,11 +180,14 @@ install_headers(
     'zend_objects_API.h',
     'zend_observer.h',
     'zend_operators.h',
+    'zend_partial.h',
+    'zend_perf_stat.h',
     'zend_portability.h',
     'zend_property_hooks.h',
     'zend_ptr_stack.h',
     'zend_range_check.h',
     'zend_signal.h',
+    'zend_simd.h',
     'zend_smart_str.h',
     'zend_smart_str_public.h',
     'zend_smart_string.h',
@@ -210,7 +214,7 @@ install_headers(
     'zend_vm_trace_map.h',
     'zend_weakrefs.h',
     'zend_weakrefs_arginfo.h',
-    subdir : 'Zend',
+    subdir : 'php/Zend',
 )
 
 install_headers(
@@ -223,5 +227,5 @@ install_headers(
     'Optimizer/zend_optimizer.h',
     'Optimizer/zend_ssa.h',
     'Optimizer/zend_worklist.h',
-    subdir : 'Zend/Optimizer',
+    subdir : 'php/Zend/Optimizer',
 )

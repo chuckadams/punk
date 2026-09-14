@@ -14,5 +14,5 @@ shared_module(
 
 install_headers(
     'php_gmp_int.h',
-    subdir : 'ext/gmp',
+    subdir : 'php/ext/gmp',
 )

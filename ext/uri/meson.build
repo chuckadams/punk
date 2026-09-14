@@ -47,3 +47,14 @@ if not cli_static_extensions.contains('uri')
         install : true,
     )
 endif
+
+# header install (autoconf: PHP_INSTALL_HEADERS)
+install_headers(
+    'php_uri.h',
+    'php_uri_common.h',
+    'php_uri_decl.h',
+    'uri_parser_php_parse_url.h',
+    'uri_parser_rfc3986.h',
+    'uri_parser_whatwg.h',
+    subdir: 'php/ext/uri',
+)

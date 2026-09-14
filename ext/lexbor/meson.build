@@ -203,3 +203,6 @@ if not cli_static_extensions.contains('lexbor')
         install : true,
     )
 endif
+
+# header install (autoconf: PHP_INSTALL_HEADERS)
+install_headers('php_lexbor.h', subdir: 'php/ext/lexbor')

@@ -22,5 +22,5 @@ shared_module(
 
 install_headers(
     'php_phar.h',
-    subdir: 'ext/phar',
+    subdir: 'php/ext/phar',
 )

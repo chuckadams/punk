@@ -252,13 +252,39 @@ Verified: the generated `internal_functions_cli.c` is byte-identical to
 autoconf's, and the extension/date/mbstring test directories pass against a build
 that now compiles meson's copy of it (7008 passing, 0 failing).
 
-**Phase 4 — runtime and struct probes.** Per-platform answer table for the 36
-`AC_RUN_IFELSE` checks, `cc.has_member` for the struct details, `cc.compiles` for
-the compiler capabilities. Exit: `just compare-config` prints no differences.
+**Phase 5 tail — `scripts/php-config`, the header layout and the man pages.** Done:
+- `scripts/meson.build` generates `php-config` from the upstream
+  `php-config.in`: version and version id are read out of `main/php_version.h`,
+  the paths come from meson's prefix/libdir/includedir, `--sapis` from the SAPI
+  list, `--libs` from the libraries the front-ends link, and
+  `--configure-options` is rendered as the equivalent `meson setup -D…` line.
+  `--includes` is `$prefix/include/php` plus its five subdirectories.
+- One placeholder was added to `php-config.in`: `@PHP_CLI_BINARY_NAME@`.  The
+  meson build installs the CLI as `punk`, so the hardcoded `php` would have made
+  `--php-binary` point at a binary that does not exist; the autoconf build sets
+  the same variable to `php` and behaves exactly as before.
+- Headers install under `include/php/…` instead of straight into `include/`,
+  which is upstream's own layout and what `--include-dir` has always reported.
+- Of the man pages only `php-cgi.1` is installed: upstream's `php.1` describes a
+  binary this fork does not ship under that name, and phpize is not built, so
+  `phpize.1` has nothing to document.  `php-config.1` is a candidate to add back
+  — we install the tool, just not its man page.
+- `just check-install` is the gate for all of it: it asserts php-config's
+  answers, compiles a minimal out-of-tree extension against the installed
+  headers with `cc` and runs it with the installed `punk`, and checks that every
+  header of the directories autoconf installed wholesale is installed.  That
+  last check found they were not: 57 headers were missing, including
+  `main/streams/php_stream_errors.h`, which `main/php_streams.h` includes — no
+  out-of-tree build could compile at all.  `Zend/` (4), `main/` (4),
+  `main/streams/` (3), `ext/standard/` (2), `ext/random/` (1), `ext/gd/libgd/`
+  (35, a whole subdirectory), and `ext/lexbor`, `ext/opcache` and `ext/uri`
+  (which had no `install_headers()` call whatsoever) were completed against the
+  autoconf set.  `ext/phar/php_phar.h` stays installed although autoconf did not
+  install it: a superset is harmless, dropping it would only break users.
 
-**Phase 5 tail — `scripts/php-config` and the man pages.** `php-config.in` wants
-the version, the install paths, the SAPI list and the link flags, all of which
-meson has; the man pages are plain substitutions.  Neither blocks the switch-over.
+Verified end to end: `just check-install` green, `just compare-config` "no
+differences", `just check-modules` loads all 50 modules, and Zend + `ext/date` +
+`ext/mbstring` pass 6625/0.
 
 **Phase 6 — switch over and delete.** Move the header generation to
 `main/meson.build` (so `<build>/main/php_config.h` shadows the source tree),
@@ -270,9 +296,26 @@ meson has; the man pages are plain substitutions.  Neither blocks the switch-ove
 and the autoconf step from `platform/_common/configure-cli` (its flags become
 meson options or a native file).
 
+That first step is not cosmetic, and it is the one thing phase 5 leaves behind.
+Hiding the five autoconf-generated headers and rebuilding fails at once with
+`Zend/zend_config.h:3:10: fatal error: '../main/php_config.h' file not found`:
+zend_config.h is generated into the build's `Zend/`, so its
+`#include <../main/php_config.h>` resolves through `-IZend` to
+`<build>/main/php_config.h`, which meson does not generate — `configure_file()`
+cannot write into a subdirectory of its build dir, so the call sits in
+`build/meson.build` and writes `<build>/build/php_config.h`.  Every compile
+therefore falls back to `/punk/main/php_config.h`, and the install copies that
+same file (`install_headers('php_config.h')` resolves against the source
+directory).  meson does own the header's *content* — `just compare-config` says
+the two agree — but not yet its place in the build, so the tree is not yet
+autoconf-free.  The move needs the configuration data that `build/meson.build`
+accumulates to be reachable from `main/meson.build`; how meson scopes that
+between sibling subdirectories is the first thing to settle when phase 6 starts.
+
 **Validation throughout**: `just compare-config` (symbol diff),
 `just meson-rebuild` (configures + builds), `just _meson-test` (full suite),
-`just check-modules` (every shared module actually loads).
+`just check-modules` (every shared module actually loads), `just check-install`
+(the install is usable from the outside).
 
 ## Open questions and risks
 

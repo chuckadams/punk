@@ -54,5 +54,5 @@ install_headers(
   'namespace_compat.h',
   'xml_common.h',
   'xpath_callbacks.h',
-  subdir: 'ext/dom',
+  subdir: 'php/ext/dom',
 )

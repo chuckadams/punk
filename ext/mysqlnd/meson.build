@@ -62,5 +62,5 @@ install_headers(
     'mysqlnd_vio.h',
     'mysqlnd_wireprotocol.h',
     'php_mysqlnd.h',
-    subdir : 'ext/mysqlnd',
+    subdir : 'php/ext/mysqlnd',
 )

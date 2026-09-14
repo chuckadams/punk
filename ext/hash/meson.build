@@ -61,10 +61,10 @@ install_headers(
     'php_hash_tiger.h',
     'php_hash_whirlpool.h',
     'php_hash_xxhash.h',
-    subdir: 'ext/hash',
+    subdir: 'php/ext/hash',
 )
 
 install_headers(
     'xxhash/xxhash.h',
-    subdir: 'ext/hash/xxhash',
+    subdir: 'php/ext/hash/xxhash',
 )

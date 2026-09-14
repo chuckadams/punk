@@ -33,5 +33,5 @@ install_headers(
     'spl_heap.h',
     'spl_iterators.h',
     'spl_observer.h',
-    subdir : 'ext/spl',
+    subdir : 'php/ext/spl',
 )

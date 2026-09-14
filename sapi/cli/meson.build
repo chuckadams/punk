@@ -22,5 +22,5 @@ test('sapi_cli_test_basic', sapi_cli_exe)
 
 install_headers(
     'cli.h',
-    subdir : 'sapi/cli',
+    subdir : 'php/sapi/cli',
 )

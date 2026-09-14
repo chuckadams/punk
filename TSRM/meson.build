@@ -13,5 +13,5 @@ tsrm_objs = static_library(
 install_headers(
     'TSRM.h',
     'tsrm_win32.h',
-    subdir: 'TSRM',
+    subdir: 'php/TSRM',
 )

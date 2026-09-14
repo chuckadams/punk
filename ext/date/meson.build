@@ -46,11 +46,11 @@ endif
 
 install_headers(
     'php_date.h',
-    subdir: 'ext/date',
+    subdir: 'php/ext/date',
 )
 
 install_headers(
     'lib/timelib.h',
     timelib_config_h,
-    subdir: 'ext/date/lib',
+    subdir: 'php/ext/date/lib',
 )

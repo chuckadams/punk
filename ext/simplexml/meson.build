@@ -15,5 +15,5 @@ shared_module(
 install_headers(
     'php_simplexml.h',
     'php_simplexml_exports.h',
-    subdir : 'ext/simplexml',
+    subdir : 'php/ext/simplexml',
 )

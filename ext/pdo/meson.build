@@ -21,5 +21,5 @@ install_headers(
     'php_pdo.h',
     'php_pdo_driver.h',
     'php_pdo_error.h',
-    subdir: 'ext/pdo',
+    subdir: 'php/ext/pdo',
 )

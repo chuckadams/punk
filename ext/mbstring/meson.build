@@ -58,13 +58,13 @@ install_headers(
   'mbstring.h',
   'php_mbregex.h',
   'php_onig_compat.h',
-  subdir: 'ext/mbstring',
+  subdir: 'php/ext/mbstring',
 )
 
 
 install_headers(
   libmbfl_config_h,
-  subdir: 'ext/mbstring/libmbfl',
+  subdir: 'php/ext/mbstring/libmbfl',
 )
 
 
@@ -82,5 +82,5 @@ install_headers(
   'libmbfl/mbfl/mbfl_language.h',
   'libmbfl/mbfl/mbfl_memory_device.h',
   'libmbfl/mbfl/mbfl_string.h',
-  subdir: 'ext/mbstring/libmbfl/mbfl',
+  subdir: 'php/ext/mbstring/libmbfl/mbfl',
 )

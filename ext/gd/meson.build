@@ -94,5 +94,47 @@ shared_module(
 
 install_headers(
     'php_gd.h',
-    subdir : 'ext/gd',
+    subdir : 'php/ext/gd',
+)
+
+# autoconf installs the whole ext/gd/libgd directory, because the bundled
+# libgd's headers are part of the ext/gd API.  meson has no glob, so the list
+# stays explicit and has to be kept in step with the directory.
+install_headers(
+    'libgd/bmp.h',
+    'libgd/entities.h',
+    'libgd/gd.h',
+    'libgd/gd_array.h',
+    'libgd/gd_color.h',
+    'libgd/gd_color_map.h',
+    'libgd/gd_compositor.h',
+    'libgd/gd_draw_blend.h',
+    'libgd/gd_errors.h',
+    'libgd/gd_fixed.h',
+    'libgd/gd_gradient.h',
+    'libgd/gd_intern.h',
+    'libgd/gd_io.h',
+    'libgd/gd_nnquant.h',
+    'libgd/gd_path.h',
+    'libgd/gd_path_arc.h',
+    'libgd/gd_path_dash.h',
+    'libgd/gd_path_matrix.h',
+    'libgd/gd_path_outline.h',
+    'libgd/gd_qoi.h',
+    'libgd/gd_span_rle.h',
+    'libgd/gd_surface.h',
+    'libgd/gd_tga.h',
+    'libgd/gd_vector2d.h',
+    'libgd/gd_vector2d_private.h',
+    'libgd/gdcache.h',
+    'libgd/gdfontg.h',
+    'libgd/gdfontl.h',
+    'libgd/gdfontmb.h',
+    'libgd/gdfonts.h',
+    'libgd/gdfontt.h',
+    'libgd/gdfx.h',
+    'libgd/gdhelpers.h',
+    'libgd/jisx0208.h',
+    'libgd/wbmp.h',
+    subdir : 'php/ext/gd/libgd',
 )

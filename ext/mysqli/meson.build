@@ -24,5 +24,5 @@ endif
 install_headers(
     'mysqli_mysqlnd.h',
     'php_mysqli_structs.h',
-    subdir : 'ext/mysqli',
+    subdir : 'php/ext/mysqli',
 )

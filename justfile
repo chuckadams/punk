@@ -82,6 +82,12 @@ build-image:
 check-modules:
     {{shell}} scripts/dev/check-modules {{meson_build_dir}}
 
+# check that the installed punk is usable from outside: php-config's answers,
+# the installed headers compiling an out-of-tree module, and the header
+# directories autoconf installed wholesale being complete
+check-install:
+    {{shell}} scripts/dev/check-install {{prefix}}
+
 # how much of autoconf's config header meson reproduces yet; exits non-zero
 # while the two differ, so it can gate the switch to meson's header
 compare-config:

@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Check that an installed punk is usable from the outside, which is what
+# php-config and the installed headers exist for:
+#
+#   1. php-config answers with this install's own paths;
+#   2. the headers are complete enough to compile an out-of-tree extension
+#      against them, and the installed binary loads what comes out;
+#   3. the directories autoconf installed wholesale still have every header in
+#      them installed (meson has no glob, so those lists are hand-written and
+#      are exactly the kind that silently drifts).
+#
+# Usage: check-install [PREFIX]     (default: /opt/punk)
+#
+# Needs nothing but a compiler: it runs against the install, not the build tree.
+set -euo pipefail
+
+prefix=${1:-/opt/punk}
+src=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+
+php_config=$prefix/bin/php-config
+punk=$prefix/bin/punk
+
+fail() { printf 'check-install: %s\n' "$*" >&2; exit 1; }
+ok() { printf '  ok  %s\n' "$*"; }
+
+[ -x "$php_config" ] || fail "$php_config is missing -- install first (just meson)"
+[ -x "$punk" ] || fail "$punk is missing -- install first (just meson)"
+
+echo "checking php-config"
+[ "$("$php_config" --php-binary)" = "$punk" ] \
+    || fail "--php-binary is '$("$php_config" --php-binary)', expected '$punk'"
+[ "$("$php_config" --extension-dir)" = "$prefix/lib" ] \
+    || fail "--extension-dir is not '$prefix/lib'"
+[ "$("$php_config" --include-dir)" = "$prefix/include/php" ] \
+    || fail "--include-dir is not '$prefix/include/php'"
+includes=$("$php_config" --includes)
+for dir in main TSRM Zend ext ext/date/lib; do
+    case " $includes " in
+    *" -I$prefix/include/php/$dir "*) ;;
+    *) fail "--includes does not mention $prefix/include/php/$dir" ;;
+    esac
+done
+ok "php-config reports this install's paths"
+
+echo "checking that the installed headers can build an out-of-tree module"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+cat > "$work/punk_test.c" <<'EOF'
+#include "php.h"
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_punk_test_hello, 0, 0, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(punk_test_hello)
+{
+    RETURN_STRING("hello from an out-of-tree module");
+}
+
+static const zend_function_entry punk_test_functions[] = {
+    PHP_FE(punk_test_hello, arginfo_punk_test_hello)
+    PHP_FE_END
+};
+
+zend_module_entry punk_test_module_entry = {
+    STANDARD_MODULE_HEADER,
+    "punk_test",
+    punk_test_functions,
+    NULL, NULL, NULL, NULL, NULL,
+    "0.1",
+    STANDARD_MODULE_PROPERTIES
+};
+
+#ifdef COMPILE_DL_PUNK_TEST
+# ifdef ZTS
+ZEND_TSRMLS_CACHE_DEFINE()
+# endif
+ZEND_GET_MODULE(punk_test)
+#endif
+EOF
+
+# php-config has no --zts; the option list is where the build's ZTS setting is
+# visible, and an external module has to match it.
+zts=""
+case "$("$php_config" --configure-options)" in
+*'zts=true'*) zts="-DZTS=1" ;;
+esac
+
+# shellcheck disable=SC2086
+${CC:-cc} -shared -fPIC -DCOMPILE_DL_PUNK_TEST=1 $zts $includes \
+    "$work/punk_test.c" -o "$work/punk_test.so" \
+    || fail "compiling against the installed headers failed"
+out=$("$punk" -n -d "extension=$work/punk_test.so" -r 'echo punk_test_hello(), "\n";')
+[ "$out" = "hello from an out-of-tree module" ] \
+    || fail "the module loaded but returned '$out'"
+ok "an out-of-tree module compiles against the install and runs"
+
+echo "checking the wholesale header directories"
+# configure.ac's PHP_INSTALL_HEADERS names these directories without a file
+# list, so autoconf installs every header in them.  (Zend/Optimizer is not one
+# of them: there the nine installed headers are named individually.)
+for dir in TSRM Zend main main/streams ext/standard ext/mysqlnd ext/gd/libgd; do
+    [ -d "$src/$dir" ] || continue
+    missing=0
+    for header in "$src/$dir"/*.h; do
+        [ -e "$header" ] || continue
+        [ -f "$prefix/include/php/$dir/$(basename "$header")" ] || {
+            printf '  missing %s/%s\n' "$dir" "$(basename "$header")" >&2
+            missing=$((missing + 1))
+        }
+    done
+    [ "$missing" -eq 0 ] || fail "$missing header(s) of $dir are not installed"
+done
+ok "every header of the wholesale directories is installed"
+
+echo "the install is usable"

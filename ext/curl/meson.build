@@ -17,5 +17,5 @@ shared_module(
 
 install_headers(
     'php_curl.h',
-    subdir: 'ext/curl',
+    subdir: 'php/ext/curl',
 )

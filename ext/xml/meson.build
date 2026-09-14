@@ -16,5 +16,5 @@ shared_module(
 install_headers(
     'expat_compat.h',
     'php_xml.h',
-    subdir : 'ext/xml',
+    subdir : 'php/ext/xml',
 )

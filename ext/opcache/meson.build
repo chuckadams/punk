@@ -32,3 +32,6 @@ if not cli_static_extensions.contains('opcache')
         install : true,
     )
 endif
+
+# header install (autoconf: PHP_INSTALL_HEADERS)
+install_headers('zend_accelerator_api.h', subdir: 'php/ext/opcache')

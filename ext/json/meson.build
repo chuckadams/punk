@@ -20,5 +20,5 @@ install_headers(
     'php_json.h',
     'php_json_parser.h',
     'php_json_scanner.h',
-    subdir: 'ext/json',
+    subdir: 'php/ext/json',
 )

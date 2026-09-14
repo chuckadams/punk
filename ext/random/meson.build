@@ -26,5 +26,6 @@ install_headers(
     'php_random.h',
     'php_random_csprng.h',
     'php_random_uint128.h',
-    subdir: 'ext/random',
+    'random_decl.h',
+    subdir: 'php/ext/random',
 )

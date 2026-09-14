@@ -14,5 +14,5 @@ shared_module(
 
 install_headers(
     'php_iconv.h',
-    subdir : 'ext/iconv',
+    subdir : 'php/ext/iconv',
 )

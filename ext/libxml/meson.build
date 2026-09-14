@@ -18,5 +18,5 @@ endif
 
 install_headers(
     'php_libxml.h',
-    subdir: 'ext/libxml',
+    subdir: 'php/ext/libxml',
 )

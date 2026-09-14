@@ -103,6 +103,8 @@ install_headers(
     'html.h',
     'html_tables.h',
     'info.h',
+    'io_poll_arginfo.h',
+    'io_poll_decl.h',
     'md5.h',
     'pageinfo.h',
     'password_arginfo.h',
@@ -139,5 +141,5 @@ install_headers(
     'url_scanner_ex.h',
     'user_filters_arginfo.h',
     'winver.h',
-    subdir: 'ext/standard',
+    subdir: 'php/ext/standard',
 )

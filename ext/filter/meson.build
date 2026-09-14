@@ -16,5 +16,5 @@ shared_module(
 
 install_headers(
     'php_filter.h',
-    subdir: 'ext/filter',
+    subdir: 'php/ext/filter',
 )

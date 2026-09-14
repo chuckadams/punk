@@ -15,5 +15,5 @@ shared_module(
 
 install_headers(
     'php_libsodium.h',
-    subdir: 'ext/sodium',
+    subdir: 'php/ext/sodium',
 )
