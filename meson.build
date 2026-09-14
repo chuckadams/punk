@@ -145,7 +145,6 @@ subdir('ext/zlib')
 punk_frontend_sources = [
     main_sources,
     tsrm_sources,
-    ext_date_sources,
     ext_json_sources,
     ext_lexbor_sources,
     ext_libxml_sources,
@@ -175,6 +174,7 @@ punk_frontend_dependencies = [
 
 punk_frontend_link_whole = [
     zend_objs,
+    ext_date_objs,
     ext_hash_objs,
     ext_intl_objs,
     ext_pcre_objs,

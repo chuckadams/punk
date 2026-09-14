@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Run the .phpt suite against a punk build: either the binaries built inside a
+# meson build directory, or an installed prefix.
+#
+# usage: run-phpt-suite <punk binary> [test path ...]
+#
+# The layout is derived from the binary's path:
+#
+#   <build>/sapi/cli/punk   Built in place.  Shared modules are scattered under
+#                           <build>/ext, so they are symlinked into
+#                           <build>/modules -- the equivalent of the autotools
+#                           modules/ directory -- and that is passed as
+#                           extension_dir.  <build>/sapi/cgi/php-cgi runs the
+#                           web tests.
+#   <prefix>/bin/punk       Installed.  Modules come from <prefix>/lib, which is
+#                           also the compiled-in extension_dir, and
+#                           <prefix>/bin/php-cgi runs the web tests.
+#
+# Modules the binary already contains are not loaded again, and dl_test is
+# skipped the way the makefile does it (it is a test fixture rather than a
+# feature).  Tested processes run with no php.ini unless PUNK_TEST_INI names
+# one, plus the usual PHP_TEST_SETTINGS.  TEST_PHP_ARGS (e.g. "-q -j12") is
+# picked up by run-tests.php itself.
+
+set -euo pipefail
+
+binary=${1:?usage: run-phpt-suite <punk binary> [test path ...]}
+shift || true
+
+binary_dir=$(cd "$(dirname "$binary")" && pwd)
+binary=$binary_dir/$(basename "$binary")
+
+if [ ! -x "$binary" ]; then
+    echo "run-phpt-suite: no executable at $binary" >&2
+    exit 1
+fi
+
+src_dir=$(cd "$(dirname "$0")/../.." && pwd)
+
+# Applied to the runner only, exactly as the makefile's PHP_TEST_SETTINGS is. The
+# tested processes must keep run-tests.php's own defaults -- in particular its
+# memory_limit=128M, which tests that check the allocator's failure mode rely on.
+# Passing these through to run-tests would lift that limit and turn such a test
+# into one that allocates hundreds of megabytes and floods the worker.
+runner_settings=(-d 'open_basedir=' -d 'output_buffering=0' -d 'memory_limit=-1')
+test_args=()
+
+if [ "$(basename "$binary_dir")" = cli ] && [ "$(basename "$(dirname "$binary_dir")")" = sapi ]; then
+    # Built in place: gather the modules into one directory first.
+    build_dir=$(dirname "$(dirname "$binary_dir")")
+    cgi=$build_dir/sapi/cgi/php-cgi
+    ext_dir=$build_dir/modules
+
+    mkdir -p "$ext_dir"
+    find "$ext_dir" -maxdepth 1 -name '*.so' -delete
+    while IFS= read -r so; do
+        ln -sf "$so" "$ext_dir/$(basename "$so")"
+    done < <(find "$build_dir/ext" -name '*.so' | sort)
+
+    # The compiled-in extension_dir is the install prefix, which is not where
+    # these modules are, so tests that load an extension by name need telling.
+    test_args+=(-d "extension_dir=$ext_dir")
+else
+    # Installed: the modules live in the prefix and the compiled-in
+    # extension_dir already points at them.
+    prefix=$(dirname "$binary_dir")
+    cgi=$prefix/bin/php-cgi
+    ext_dir=$prefix/lib
+fi
+
+# Whatever the binary already provides must not be loaded a second time. Asking
+# the binary (rather than hardcoding a list) keeps this correct when the set of
+# extensions linked into the front-ends changes.
+builtin_modules=$("$binary" -n -r 'echo implode("\n", get_loaded_extensions());' 2>/dev/null \
+    | tr '[:upper:]' '[:lower:]' | sed 's/^zend //')
+
+module_args=()
+shopt -s nullglob
+for so in "$ext_dir"/*.so; do
+    name=$(basename "$so" .so)
+    [ "$name" = dl_test ] && continue
+    grep -qx "$name" <<<"$builtin_modules" && continue
+    module_args+=(-d "extension=$so")
+done
+
+if [ ${#module_args[@]} -eq 0 ]; then
+    echo "run-phpt-suite: no shared modules found in $ext_dir" >&2
+    exit 1
+fi
+
+# run-tests.php drives --POST--/--GET--/--COOKIE--/--CGI-- tests through the CGI
+# binary. Its own lookup derives "php-cgi" from the tested binary's name, which
+# finds nothing next to a binary called "punk" and then falls back to that
+# binary, so point it at the CGI binary explicitly.
+if [ -x "$cgi" ]; then
+    export TEST_PHP_CGI_EXECUTABLE=$cgi
+else
+    echo "run-phpt-suite: warning: no $cgi, web tests will fail" >&2
+fi
+
+if [ -n "${PUNK_TEST_INI:-}" ]; then
+    ini_args=(-c "$PUNK_TEST_INI")
+else
+    ini_args=(-n)
+fi
+
+echo "run-phpt-suite: $binary with $(( ${#module_args[@]} / 2 )) modules from $ext_dir"
+
+cd "$src_dir"
+TEST_PHP_EXECUTABLE=$binary \
+TEST_PHP_SRCDIR=$src_dir \
+CC=${CC:-cc} \
+NO_INTERACTION=1 \
+    exec "$binary" "${ini_args[@]}" "${runner_settings[@]}" \
+        "$src_dir/run-tests.php" "${ini_args[@]}" "${test_args[@]}" "${module_args[@]}" "$@"

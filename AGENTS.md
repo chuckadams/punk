@@ -42,7 +42,7 @@ needs), and `just meson` then builds and installs from that state without config
 
 ```sh
 PLATFORM=aarch64-linux-gnu just configure       # once, and again after `just clean`
-PLATFORM=aarch64-linux-gnu just meson           # meson: generate, setup, compile, install (wipes build dir + prefix)
+PLATFORM=aarch64-linux-gnu just meson           # meson: generate, setup, compile, test, install (wipes build dir + prefix)
 PLATFORM=aarch64-linux-gnu just meson-rebuild   # regenerate + rebuild in place (no wipe, no install)
 PLATFORM=aarch64-linux-gnu just check-modules   # load every built module, report the ones that fail
 PLATFORM=aarch64-linux-gnu just all             # autotools: clean, configure, generate, make, install, test
@@ -53,11 +53,11 @@ PLATFORM=aarch64-linux-gnu just build-image     # rebuild the platform's docker 
 ```
 
 `just --list` shows the public recipes; `_`-prefixed recipes (`_meson-setup`, `_meson-compile`,
-`_meson-install`, `_wipe-build`, `_wipe-install`) are pieces called by the others — `_meson-compile` on its
-own only works once the generated lexers/parsers exist, which is why `meson-rebuild` wraps it. `just clean`
-deletes the autotools output *and* every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/` —
-including the generated sources and config headers, so a rebuild after `just clean` needs `just configure`
-(re-creates the headers) and `just meson` (re-creates the generated sources).
+`_meson-test`, `_meson-install`, `_wipe-build`, `_wipe-install`) are pieces called by the others, and are all
+runnable on their own. `_meson-compile` only works once the generated lexers/parsers exist, which is why
+`meson-rebuild` wraps it. `just clean` deletes the autotools output *and* every ignored file under `ext/ main/
+sapi/ TSRM/ Zend/ scripts/ tests/` — including the generated sources and config headers, so a rebuild after
+`just clean` needs `just configure` (re-creates the headers) and `just meson` (re-creates the sources).
 
 | platform | how it runs |
 |---|---|
@@ -86,6 +86,11 @@ including the generated sources and config headers, so a rebuild after `just cle
 - The root `meson.build` lists every extension with an explicit `subdir()` call; there is **no feature
   detection** — an extension is built unconditionally and its `dependency()` calls are not optional, so the
   platform image must supply every library.
+- Per-extension *defines* from `config.m4` are just as load-bearing as the source lists, and a missing one
+  fails silently. `ext/date` is the cautionary example: `timelib.h` tests `HAVE_TIMELIB_CONFIG_H` before
+  anything has included `php_config.h`, so config0.m4 passes it on the command line; without it
+  `timelib_config.h` is skipped, timelib allocates with `malloc` while PHP frees with `efree`, and every
+  interval/`DateTime` code path corrupts the heap.
 - `sapi/cli/meson.build` builds the executable **`punk`** and `sapi/cgi/meson.build` builds **`php-cgi`**;
   both link the same core, held in `punk_frontend_sources` / `punk_frontend_dependencies` /
   `punk_frontend_link_whole` at the end of the root `meson.build`. Adding an extension to the binaries means
@@ -117,12 +122,10 @@ Known gaps, in rough priority order:
    (including the whole newer libgd drawing/path API) and `ext/zip` was missing `zip_source.c`. Both surface
    as undefined symbols at load time rather than as build errors, which is what `just check-modules` is for —
    compare against `config.m4` when touching an extension.
-3. A handful of tests fail against the meson-built binary that pass under `make test`, all but one of them
-   memory bugs the Zend allocator's integrity check catches (`zend_mm_heap corrupted`, `munmap_chunk():
-   invalid pointer`) while calling methods on an unconstructed `IntlGregorianCalendar` or discarding
-   `DateTimeImmutable` return values. With `USE_ZEND_ALLOC=0` the same binary behaves exactly like the
-   autotools one, so it is a latent php-src memory bug that only shows up under the meson build's heap
-   layout. `just test-installed Zend/tests/arginfo_zpp_mismatch.phpt` reproduces it.
+3. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name, which does not work for
+   a binary called `punk`; `get_binary()` now refuses to return the tested binary itself, so a build without
+   phpdbg skips those tests instead of running them against the CLI. That is a fork-only change to an upstream
+   file — worth sending upstream, since it affects any renamed build.
 
 The autotools path (`just all`, flags in `platform/_common/configure-cli`) is still the reference: debug, ZTS,
 CLI SAPI, external pcre, JIT and fiber asm disabled, most extensions `=shared`, and `make test` works. Keep
@@ -149,7 +152,8 @@ CLI SAPI, external pcre, JIT and fiber asm disabled, most extensions `=shared`, 
 ```sh
 PLATFORM=aarch64-linux-gnu just test                        # whole suite, autotools build tree
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt    # one test file or directory (repeatable)
-PLATFORM=aarch64-linux-gnu just test-installed              # the same suite, on the installed punk
+PLATFORM=aarch64-linux-gnu just _meson-test                 # the same suite, on the binaries just built
+PLATFORM=aarch64-linux-gnu just test-installed              # the same suite, on the installed binaries
 PLATFORM=aarch64-linux-gnu just test-installed ext/curl/tests
 ```
 
@@ -157,15 +161,21 @@ PLATFORM=aarch64-linux-gnu just test-installed ext/curl/tests
 CLI with `-n`, a generated `tmp-php.ini` and `extension_dir=<build>/modules/`, and it deliberately ignores
 the exit status, so read the summary line.
 
-`just test-installed` needs only an install (`just meson`) and runs the suite with `$prefix/bin/punk`;
-`scripts/dev/run-installed-tests` loads every module from `$prefix/lib` (minus `dl_test` and anything the
-binary already contains), points `run-tests.php` at `$prefix/bin/php-cgi` for the web tests, and sets the
-usual `TEST_PHP_SETTINGS`. It is the closest thing to `make test` without a build tree, and unlike `just test`
-it propagates the runner's exit status. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
+`just _meson-test` runs the suite against `$meson_build_dir/sapi/cli/punk` without installing anything — it
+is a step of `just meson`, and also usable on its own for iteration. `just test-installed` does the same for
+`$prefix/bin/punk` after `just meson`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
+from the binary's path: for a build directory it symlinks the modules scattered under `ext/` into
+`<build>/modules` and points `extension_dir` there, and for an install it uses `$prefix/lib`. Either way it
+loads every module except `dl_test` and the ones the binary already contains, points `run-tests.php` at the
+matching `php-cgi` for the web tests, and applies the usual `PHP_TEST_SETTINGS`. `test-installed` propagates
+the runner's exit status; `_meson-test` ignores it on purpose, so that `just meson` still installs a build
+whose tests fail. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
 
-Either way: extra args come from `TEST_PHP_ARGS` (`-q -j12` here), `SKIP_SLOW_TESTS=1` and the
-default-offline `SKIP_ONLINE_TESTS` prune the suite, and `Zend/tests/arginfo_zpp_mismatch.phpt` currently
-fails against the meson build (see gap 3 above).
+Either way: extra args come from `TEST_PHP_ARGS` (`-q -j12` here), and `SKIP_SLOW_TESTS=1` / the
+default-offline `SKIP_ONLINE_TESTS` prune the suite. Both targets reach every test that the autotools build
+does except the `phpdbg` ones, which skip because punk does not build phpdbg; the dozen or so that still fail
+(filesystem/permission tests, two soap tests, and run-tests' own self-tests) fail the same way under
+`make test`.
 
 ## Roadmap constraints (keep these in mind, from the justfile)
 

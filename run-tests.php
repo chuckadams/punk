@@ -1087,7 +1087,10 @@ function get_binary(string $php, string $sapi, string $sapi_path): ?string
     }
     // Installation tree, preserve command prefix/suffix
     $inst = str_replace('php', $sapi, basename($php));
-    if (file_exists("$dir/$inst")) {
+    // A binary that does not carry "php" in its name (punk) maps to itself, and
+    // returning it here would make the tested binary pass as its own cgi or
+    // phpdbg; report the sapi as unavailable instead so those tests skip.
+    if ($inst !== basename($php) && file_exists("$dir/$inst")) {
         return realpath("$dir/$inst");
     }
     return null;

@@ -61,7 +61,7 @@ test *TESTS:
 # run the .phpt suite against the installed binary (see `just meson`), without make:
 #   just test-installed ext/curl/tests
 test-installed *TESTS:
-    {{shell}} scripts/dev/run-installed-tests {{prefix}}/bin/punk {{TESTS}}
+    {{shell}} scripts/dev/run-phpt-suite {{prefix}}/bin/punk {{TESTS}}
 
 install: _wipe-install
     {{shell}} make install
@@ -82,7 +82,7 @@ build-image:
 check-modules:
     {{shell}} scripts/dev/check-modules {{meson_build_dir}}
 
-meson: generate _meson-setup _meson-compile _meson-install
+meson: generate _meson-setup _meson-compile _meson-test _meson-install
 
 # regenerate sources, then rebuild in place -- no wipe, no install
 meson-rebuild: generate _meson-compile
@@ -92,6 +92,13 @@ _meson-setup: _wipe-build
 
 _meson-compile:
     {{shell}} meson compile -C {{meson_build_dir}}
+
+# test the binaries in the build directory, without installing them first:
+#   just _meson-test Zend/tests
+# failure is ignored so that `just meson` still installs a build that has
+# failing tests -- read the summary
+_meson-test *TESTS:
+    -{{shell}} scripts/dev/run-phpt-suite {{meson_build_dir}}/sapi/cli/punk {{TESTS}}
 
 _meson-install: _wipe-install
     {{shell}} meson install -C {{meson_build_dir}}
