@@ -16,6 +16,7 @@ ext_gd_sources = files(
     'libgd/gd_io.c',
     'libgd/gd_jpeg.c',
     'libgd/gd_matrix.c',
+    'libgd/gd_metadata.c',
     'libgd/gd_png.c',
     'libgd/gd_rotate.c',
     'libgd/gd_security.c',
@@ -39,6 +40,37 @@ ext_gd_sources = files(
     'libgd/gdtables.c',
     'libgd/gdxpm.c',
     'libgd/wbmp.c',
+    # The list above was copied from an older libgd and had drifted from
+    # config.m4; everything below is built by the autotools build too. The
+    # HAVE_LIBHEIF/LIBJXL/LIBTIFF/LIBUHDR sources compile to stubs while those
+    # libraries are absent from the platform image.
+    'libgd/gd_qoi.c',
+    'libgd/gd_jxl.c',
+    'libgd/gd_color_map.c',
+    'libgd/gd_heif.c',
+    'libgd/gd_uhdr.c',
+    'libgd/gd_nnquant.c',
+    'libgd/gd_color.c',
+    'libgd/gd_tiff.c',
+    'libgd/gd_readimage.c',
+    'libgd/gd_filename.c',
+    'libgd/ftraster/gd_ft_math.c',
+    'libgd/ftraster/gd_ft_raster.c',
+    'libgd/ftraster/gd_ft_stroker.c',
+    'libgd/gd_array.c',
+    'libgd/gd_span_rle.c',
+    'libgd/gd_surface.c',
+    'libgd/gd_version.c',
+    'libgd/gd_compositor.c',
+    'libgd/gd_gradient.c',
+    'libgd/gd_path.c',
+    'libgd/gd_path_arc.c',
+    'libgd/gd_path_dash.c',
+    'libgd/gd_path_matrix.c',
+    'libgd/gd_path_stroke.c',
+    'libgd/gd_draw.c',
+    'libgd/gd_draw_blend.c',
+    'libgd/gd_perceptual_diff.c',
 )
 
 shared_module(
@@ -46,8 +78,17 @@ shared_module(
     [ext_gd_sources],
     name_prefix : '',
     c_args : [],
-    include_directories : [includes],
-    dependencies : [dependency('freetype2')],
+    include_directories : [includes, 'libgd', 'libgd/ftraster'],
+    dependencies : [
+        dependency('freetype2'),
+        dependency('libavif'),
+        dependency('libjpeg'),
+        dependency('libpng'),
+        dependency('libwebp'),
+        dependency('libwebpdemux'),
+        dependency('libwebpmux'),
+        dependency('xpm'),
+    ],
     install : true,
 )
 

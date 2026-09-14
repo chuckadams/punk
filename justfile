@@ -73,7 +73,14 @@ build-image:
     set -euo pipefail
     cd {{platform_dir}} && docker compose build
 
+# load every module built by `just meson` and report the ones that fail
+check-modules:
+    {{shell}} scripts/dev/check-modules {{meson_build_dir}}
+
 meson: generate _meson-setup _meson-compile _meson-install
+
+# regenerate sources, then rebuild in place -- no wipe, no install
+meson-rebuild: generate _meson-compile
 
 _meson-setup: _wipe-build
     {{shell}} meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}

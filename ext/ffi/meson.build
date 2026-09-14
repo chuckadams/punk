@@ -9,5 +9,6 @@ shared_module(
     name_prefix: '',
     c_args : [],
     include_directories : [includes],
+    dependencies : [dependency('libffi')],
     install : true,
 )

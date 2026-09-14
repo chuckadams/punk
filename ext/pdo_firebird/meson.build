@@ -11,6 +11,7 @@ shared_module(
     name_prefix: '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [],
+    # firebird ships fb_config rather than a pkg-config file
+    dependencies: [cc.find_library('fbclient')],
     install : true,
 )

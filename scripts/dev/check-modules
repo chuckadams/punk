@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Load every shared module produced by a meson build in one CLI process.
+#
+# Loading them together (alphabetically, which happens to put providers such as
+# pdo.so and dom.so ahead of their consumers) makes this a real smoke test for
+# the modules' DT_NEEDED entries: a module whose external library is not linked
+# shows up as "undefined symbol", and one missing from the source list shows up
+# the same way.
+#
+# usage: check-modules <meson build dir> [extension dir]
+
+set -euo pipefail
+
+build_dir=${1:?usage: check-modules <meson build dir> [extension dir]}
+binary=$build_dir/sapi/cli/punk
+
+if [ ! -x "$binary" ]; then
+    echo "no punk binary at $binary -- run 'just meson' or 'just meson-rebuild' first" >&2
+    exit 1
+fi
+
+args=()
+modules=0
+for so in $(find "$build_dir/ext" -name '*.so' | sort); do
+    args+=(-d "extension=$so")
+    modules=$((modules + 1))
+done
+
+if [ "$modules" -eq 0 ]; then
+    echo "no shared modules found under $build_dir/ext" >&2
+    exit 1
+fi
+
+# LD_BIND_NOW forces every symbol to resolve at dlopen time. Without it, a
+# missing library is only noticed when the module first calls into it, so a
+# module could pass this check and still blow up later.
+out=$(LD_BIND_NOW=1 "$binary" -n "${args[@]}" -r 'echo 1;' 2>&1 || true)
+
+failures=$(printf '%s\n' "$out" | grep "Unable to load dynamic library" || true)
+if [ -z "$failures" ]; then
+    echo "all $modules modules loaded"
+    exit 0
+fi
+
+printf '%s\n' "$failures" | while IFS= read -r line; do
+    lib=$(printf '%s' "$line" | sed -n "s/.*Unable to load dynamic library '\([^']*\)'.*/\1/p")
+    why=$(printf '%s' "$line" | grep -o "undefined symbol: [A-Za-z0-9_]*" | head -1)
+    printf 'FAIL %-16s %s\n' "$(basename "$lib")" "${why:-failed to load}"
+done
+
+count=$(printf "%s\n" "$failures" | wc -l | tr -d " ")
+echo "$count of $modules modules failed to load"
+exit 1

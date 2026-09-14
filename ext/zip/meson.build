@@ -1,5 +1,6 @@
 ext_zip_sources = files(
   'php_zip.c',
+  'zip_source.c',
   'zip_stream.c',
 )
 
@@ -9,6 +10,6 @@ shared_module(
     name_prefix: '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [],
+    dependencies: [dependency('libzip')],
     install : true,
 )

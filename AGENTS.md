@@ -43,7 +43,8 @@ needs), and `just meson` then builds and installs from that state without config
 ```sh
 PLATFORM=aarch64-linux-gnu just configure       # once, and again after `just clean`
 PLATFORM=aarch64-linux-gnu just meson           # meson: generate, setup, compile, install (wipes build dir + prefix)
-PLATFORM=aarch64-linux-gnu just _meson-compile  # incremental rebuild in the existing meson build dir
+PLATFORM=aarch64-linux-gnu just meson-rebuild   # regenerate + rebuild in place (no wipe, no install)
+PLATFORM=aarch64-linux-gnu just check-modules   # load every built module, report the ones that fail
 PLATFORM=aarch64-linux-gnu just all             # autotools: clean, configure, generate, make, install, test
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt   # .phpt suite, or one file/directory
 PLATFORM=aarch64-linux-gnu just shell           # interactive shell in the platform environment
@@ -51,9 +52,11 @@ PLATFORM=aarch64-linux-gnu just build-image     # rebuild the platform's docker 
 ```
 
 `just --list` shows the public recipes; `_`-prefixed recipes (`_meson-setup`, `_meson-compile`,
-`_meson-install`, `_wipe-build`, `_wipe-install`) are pieces called by the others. `just clean` deletes the
-autotools output *and* every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/` — including
-the generated config headers, so a rebuild after `just clean` needs `just configure` again.
+`_meson-install`, `_wipe-build`, `_wipe-install`) are pieces called by the others — `_meson-compile` on its
+own only works once the generated lexers/parsers exist, which is why `meson-rebuild` wraps it. `just clean`
+deletes the autotools output *and* every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/` —
+including the generated sources and config headers, so a rebuild after `just clean` needs `just configure`
+(re-creates the headers) and `just meson` (re-creates the generated sources).
 
 | platform | how it runs |
 |---|---|
@@ -85,23 +88,33 @@ the generated config headers, so a rebuild after `just clean` needs `just config
 - `sapi/cli/meson.build` is the only SAPI: it aggregates the core sources and the statically linked
   extensions (`sapi_cli_all_sources`, `link_whole`) into the executable **`punk`** (not `php`), and holds the
   CLI's `dependency()` list. Adding an extension to the binary means adding it there.
+- Every `shared_module()` must declare the external libraries it links, in `dependencies:`. A module with
+  unresolved symbols still links fine on Linux and only fails when it is loaded, so `just check-modules` runs
+  the CLI with every built module loaded and `LD_BIND_NOW=1` — eager binding catches symbols that would
+  otherwise only blow up when a code path first calls them. Modules are loaded in one process in
+  alphabetical order, which is also how the inter-extension dependencies resolve (`pdo` before the pdo
+  drivers, `dom` before `xmlreader`/`xsl`).
+- `main/meson.build` generates `main/build-defs.h` from the tracked `build-defs.h.in`, so the compiled-in
+  install paths are meson's own. It sets `PHP_EXTENSION_DIR` to meson's `libdir` (`/opt/punk/lib`), which is
+  where `shared_module()` installs, unlike autotools' oldstyle
+  `$prefix/lib/php/extensions/<debug>-zts-<api>`.
 - Install layout (verified from the meson install data): `/opt/punk/bin/punk`, shared modules flat in
   `/opt/punk/lib/*.so`, headers in `/opt/punk/include/{main,Zend,ext/…}`.
 
 Known gaps, in rough priority order:
 
 1. **Meson still depends on autoconf for configuration headers.** `main/php_config.h`, `Zend/zend_config.h`,
-   `main/build-defs.h`, `ext/date/lib/timelib_config.h` and `ext/mbstring/libmbfl/config.h` are produced by
-   `./configure` (no `configure_file()` exists anywhere yet), and a compile without them fails on
-   `<zend_config.h>`. So the order today is `just configure` (autotools) first, then `just meson`.
-   `build/configure.meson` is the unfinished replacement — it is marked "not usable yet" and its `subdir()`
-   call is commented out of `meson.build`; `scripts/dev/ac_converter.py` helps translate `config.h.in` checks.
-2. Several shared modules do not declare their link dependencies, so they build but fail to `dlopen`
-   (undefined symbols — `curl.so`, `openssl.so`, `mbstring.so` today, while `zlib.so`, `dom.so` load fine).
-3. `extension_dir` still comes from the autoconf-generated `build-defs.h`, i.e.
-   `/opt/punk/lib/php/extensions/debug-zts-<api>`, while meson installs modules into `/opt/punk/lib` — pass
-   `-d extension_dir=/opt/punk/lib` (or set it in the ini) when loading shared modules from a meson install.
-4. The meson build registers only a smoke test (`sapi_cli_test_basic`); the real suite still needs the
+   `ext/date/lib/timelib_config.h` and `ext/mbstring/libmbfl/config.h` are produced by `./configure`
+   (`build-defs.h` is the one header meson now generates itself; nothing else uses `configure_file()` yet),
+   and a compile without them fails on `<zend_config.h>`. So the order today is `just configure` (autotools)
+   first, then `just meson`. `build/configure.meson` is the unfinished replacement — it is marked "not usable
+   yet" and its `subdir()` call is commented out of `meson.build`; `scripts/dev/ac_converter.py` helps
+   translate `config.h.in` checks.
+2. Source lists in `meson.build` are hand-copied from `config.m4` and drift: `ext/gd` was ~25 files behind
+   (including the whole newer libgd drawing/path API) and `ext/zip` was missing `zip_source.c`. Both surface
+   as undefined symbols at load time rather than as build errors, which is what `just check-modules` is for —
+   compare against `config.m4` when touching an extension.
+3. The meson build registers only a smoke test (`sapi_cli_test_basic`); the real suite still needs the
    autotools build.
 
 The autotools path (`just all`, flags in `platform/_common/configure-cli`) is still the reference: debug, ZTS,

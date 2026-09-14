@@ -61,9 +61,57 @@ main_objs = static_library(
     build_by_default : false,
 )
 
+# build-defs.h holds the compiled-in install paths, including PHP_EXTENSION_DIR,
+# which is the default of the extension_dir ini setting. Autotools derives it
+# from its own (oldstyle) layout under $libdir/php; meson installs shared modules
+# straight into $libdir, so generate it here to keep the two in step.
+php_prefix = get_option('prefix')
+
+dir_options = {
+    'bindir': get_option('bindir'),
+    'sbindir': get_option('sbindir'),
+    'mandir': get_option('mandir'),
+    'libdir': get_option('libdir'),
+    'datadir': get_option('datadir'),
+    'sysconfdir': get_option('sysconfdir'),
+    'localstatedir': get_option('localstatedir'),
+}
+php_dirs = {}
+foreach name, value : dir_options
+    if value.startswith('/')
+        php_dirs += {name: value}
+    else
+        php_dirs += {name: php_prefix / value}
+    endif
+endforeach
+
+build_defs = configuration_data()
+build_defs.set('CONFIGURE_COMMAND', 'meson')
+build_defs.set('PROG_SENDMAIL', '/usr/sbin/sendmail')
+build_defs.set('EXPANDED_PEAR_INSTALLDIR', '')
+build_defs.set('INCLUDE_PATH', '.:')
+build_defs.set('EXPANDED_EXTENSION_DIR', php_dirs['libdir'])
+build_defs.set('prefix', php_prefix)
+build_defs.set('EXPANDED_BINDIR', php_dirs['bindir'])
+build_defs.set('EXPANDED_SBINDIR', php_dirs['sbindir'])
+build_defs.set('EXPANDED_MANDIR', php_dirs['mandir'])
+build_defs.set('EXPANDED_LIBDIR', php_dirs['libdir'])
+build_defs.set('EXPANDED_DATADIR', php_dirs['datadir'])
+build_defs.set('EXPANDED_SYSCONFDIR', php_dirs['sysconfdir'])
+build_defs.set('EXPANDED_LOCALSTATEDIR', php_dirs['localstatedir'])
+build_defs.set('EXPANDED_PHP_CONFIG_FILE_PATH', php_dirs['libdir'])
+build_defs.set('EXPANDED_PHP_CONFIG_FILE_SCAN_DIR', '')
+build_defs.set('SHLIB_DL_SUFFIX_NAME', 'so')
+
+build_defs_h = configure_file(
+    input: 'build-defs.h.in',
+    output: 'build-defs.h',
+    configuration: build_defs,
+)
+
 install_headers(
     'SAPI.h',
-    'build-defs.h',
+    build_defs_h,
     'fastcgi.h',
     'fopen_wrappers.h',
     'http_status_codes.h',

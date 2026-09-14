@@ -9,6 +9,6 @@ shared_module(
     name_prefix: '',
     c_args : [],
     include_directories : [includes],
-    dependencies: [dependency('libxml-2.0')],
+    dependencies: [dependency('libxml-2.0'), dependency('libxslt'), dependency('libexslt')],
     install : true,
 )

@@ -45,9 +45,9 @@ shared_module(
     'mbstring',
     [ext_mbstring_sources],
     name_prefix: '',
-    c_args : [],
+    c_args : ['-DONIG_ESCAPE_UCHAR_COLLISION=1', '-DUChar=OnigUChar'],
     include_directories : [includes, 'libmbfl', 'libmbfl/mbfl'],
-    dependencies: [],
+    dependencies: [dependency('oniguruma')],
     install : true,
 )
 
