@@ -10,6 +10,8 @@ cflags = [
     '-ffp-contract=off',    # https://github.com/php/php-src/issues/14140
 ]
 
+fs = import('fs')
+
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language : 'c')
 add_project_arguments(['-DPUNK', '-DPUNK_MESON'], language : ['c', 'cpp'])
@@ -41,6 +43,15 @@ cli_static_extensions = [
 # configure phase: this runs at setup (and again whenever the build description
 # changes or options are edited), which is the equivalent of autoconf's
 # configure step.  There is deliberately no option gating it.
+#
+# The data is created here so that two subdirectories can share it: build/ fills
+# it in with the platform checks, main/ writes the header out of it.  It has to
+# be written from main/ because configure_file() cannot write into a
+# subdirectory of the build directory, and Zend/zend_config.h -- which meson
+# generates into the build's Zend/ -- includes <../main/php_config.h>.
+php_config_defs = configuration_data()
+php_config_template = files('build/php_config.h.in')
+
 subdir('build')
 
 add_project_arguments('-DHAVE_MEMFD_CREATE', language : 'c')  # TODO: fix includes so this doesn't need to be global
@@ -52,6 +63,12 @@ includes = include_directories(
     'TSRM',
     'ext/lexbor',
     'ext/uri/uriparser/include',
+    # timelib.h includes timelib_config.h from its own directory, and that file
+    # is generated into the build's ext/date/lib/ (see ext/date/lib/meson.build)
+    # rather than written into the source tree.  ext/date itself is only the
+    # first consumer: ext/intl, ext/opcache, ext/session, ext/soap and
+    # ext/standard all reach it through php_date.h.
+    'ext/date/lib',
 )
 
 
@@ -64,6 +81,26 @@ static_c_args = ['-DZEND_ENABLE_STATIC_TSRMLS_CACHE=1']
 subdir('main')
 subdir('TSRM')
 subdir('Zend')
+
+# Interoperability check.  autoconf also writes main/php_config.h, into the
+# source tree, and for the sources in main/ that copy wins over the generated
+# one -- a quoted include looks in the including file's own directory first.
+# Whenever both exist they should say the same thing, so a disagreement (an
+# autotools configuration with different options, say) is worth a warning
+# rather than a binary quietly built from two configurations.
+compare_config_headers = find_program('scripts/dev/compare-config-headers', required: false)
+autoconf_php_config_h = meson.current_source_dir() / 'main/php_config.h'
+if compare_config_headers.found() and fs.is_file(autoconf_php_config_h)
+    compare = run_command(
+        compare_config_headers,
+        autoconf_php_config_h,
+        meson.current_build_dir() / 'main/php_config.h',
+        check: false,
+    )
+    if compare.returncode() != 0
+        warning('the source tree\'s main/php_config.h (autoconf) and the generated one differ; run `just compare-config` for the details')
+    endif
+endif
 
 subdir('ext/bcmath')
 subdir('ext/bz2')

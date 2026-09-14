@@ -21,15 +21,16 @@ ext_date_sources = files(
 # back to malloc/free, and PHP frees that memory with efree.
 ext_date_c_args = ['-DHAVE_TIMELIB_CONFIG_H=1']
 
-# timelib_config.h lives in lib/ and is generated there (see lib/meson.build),
-# so lib/ has to be on the include path for the sources that ask for it.
+# timelib_config.h lives in lib/ and is generated there (see lib/meson.build).
+# lib/ is on the include path for every target, added in the root meson.build:
+# php_date.h reaches it from other extensions too, so it is not ext/date's alone.
 subdir('lib')
 
 ext_date_objs = static_library(
     'ext_date_objs',
     ext_date_sources,
     c_args : ext_date_c_args + static_c_args,
-    include_directories : [includes, 'lib'],
+    include_directories : [includes],
     build_by_default : false,
 )
 

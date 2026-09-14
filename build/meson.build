@@ -1,7 +1,9 @@
-# not usable yet
-
-cc = meson.get_compiler('c')
-cdata = configuration_data()
+# The platform checks below fill in the configuration data that the root
+# meson.build created, so that main/meson.build can write the header out of it:
+# configure_file() cannot write into a subdirectory of its own build directory,
+# and the header has to be generated into the build's main/.  Note that the
+# variable has to be used directly -- assigning it to a local name would copy
+# it, and the writes would then be lost.
 
 # Checks must see the same feature-test macros as the build, or GNU/POSIX
 # extensions look absent (accept4, gettid, sched_*, strptime, tm_zone, ...).
@@ -102,7 +104,7 @@ check_headers = [
 
 foreach h : check_headers
     if cc.has_header(h, args : check_args)
-        cdata.set('HAVE_' + h.underscorify().to_upper(), 1)
+        php_config_defs.set('HAVE_' + h.underscorify().to_upper(), 1)
     endif
 endforeach
 
@@ -481,15 +483,15 @@ check_functions = [
 
 foreach f : check_functions
     if cc.has_function(f.get(1), prefix : f.get(2), args : check_args)
-        cdata.set(f.get(0), 1)
+        php_config_defs.set(f.get(0), 1)
     endif
 endforeach
 
-cdata.set('SIZEOF_INT', cc.sizeof('int'))
-cdata.set('SIZEOF_LONG', cc.sizeof('long'))
-cdata.set('SIZEOF_LONG_LONG', cc.sizeof('long long'))
-cdata.set('SIZEOF_OFF_T', cc.sizeof('off_t', prefix : '#include<sys/types.h>'))
-cdata.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
+php_config_defs.set('SIZEOF_INT', cc.sizeof('int'))
+php_config_defs.set('SIZEOF_LONG', cc.sizeof('long'))
+php_config_defs.set('SIZEOF_LONG_LONG', cc.sizeof('long long'))
+php_config_defs.set('SIZEOF_OFF_T', cc.sizeof('off_t', prefix : '#include<sys/types.h>'))
+php_config_defs.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
 
 # Adjudicate before the switch: meson's checks find clearenv, clock_gettime,
 # ptrace, times, tzname and the tzname declaration, while autoconf left all six
@@ -499,21 +501,21 @@ cdata.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
 
 # Declarations have to be defined to 0 when absent -- leaving them undefined is
 # not the same as "not declared" for the code that uses these.
-cdata.set10('HAVE_DECL_STRERROR_R', cc.has_header_symbol('string.h', 'strerror_r', args : check_args))
-cdata.set10('HAVE_DECL_STRPTIME', cc.has_header_symbol('time.h', 'strptime', args : check_args))
-cdata.set10('HAVE_DECL_WCONTINUED', cc.has_header_symbol('sys/wait.h', 'WCONTINUED', args : check_args))
-cdata.set10('HAVE_DECL_WEXITED', cc.has_header_symbol('sys/wait.h', 'WEXITED', args : check_args))
-cdata.set10('HAVE_DECL_WNOWAIT', cc.has_header_symbol('sys/wait.h', 'WNOWAIT', args : check_args))
-cdata.set10('HAVE_DECL_WSTOPPED', cc.has_header_symbol('sys/wait.h', 'WSTOPPED', args : check_args))
-cdata.set10('HAVE_DECL_P_ALL', cc.has_header_symbol('sys/wait.h', 'P_ALL', args : check_args))
-cdata.set10('HAVE_DECL_P_PIDFD', cc.has_header_symbol('sys/wait.h', 'P_PIDFD', args : check_args))
-cdata.set10('HAVE_DECL_P_UID', cc.has_header_symbol('sys/wait.h', 'P_UID', args : check_args))
-cdata.set10('HAVE_DECL_SYS_PIDFD_OPEN', cc.has_header_symbol('sys/syscall.h', 'SYS_pidfd_open', args : check_args))
-cdata.set10('HAVE_DECL_SYS_WAITID', cc.has_header_symbol('sys/syscall.h', 'SYS_waitid', args : check_args))
+php_config_defs.set10('HAVE_DECL_STRERROR_R', cc.has_header_symbol('string.h', 'strerror_r', args : check_args))
+php_config_defs.set10('HAVE_DECL_STRPTIME', cc.has_header_symbol('time.h', 'strptime', args : check_args))
+php_config_defs.set10('HAVE_DECL_WCONTINUED', cc.has_header_symbol('sys/wait.h', 'WCONTINUED', args : check_args))
+php_config_defs.set10('HAVE_DECL_WEXITED', cc.has_header_symbol('sys/wait.h', 'WEXITED', args : check_args))
+php_config_defs.set10('HAVE_DECL_WNOWAIT', cc.has_header_symbol('sys/wait.h', 'WNOWAIT', args : check_args))
+php_config_defs.set10('HAVE_DECL_WSTOPPED', cc.has_header_symbol('sys/wait.h', 'WSTOPPED', args : check_args))
+php_config_defs.set10('HAVE_DECL_P_ALL', cc.has_header_symbol('sys/wait.h', 'P_ALL', args : check_args))
+php_config_defs.set10('HAVE_DECL_P_PIDFD', cc.has_header_symbol('sys/wait.h', 'P_PIDFD', args : check_args))
+php_config_defs.set10('HAVE_DECL_P_UID', cc.has_header_symbol('sys/wait.h', 'P_UID', args : check_args))
+php_config_defs.set10('HAVE_DECL_SYS_PIDFD_OPEN', cc.has_header_symbol('sys/syscall.h', 'SYS_pidfd_open', args : check_args))
+php_config_defs.set10('HAVE_DECL_SYS_WAITID', cc.has_header_symbol('sys/syscall.h', 'SYS_waitid', args : check_args))
 
 # iconv is an implementation detail rather than a library, so it is probed here
 # and again per-extension (see ext/iconv/meson.build).
-cdata.set10('HAVE_ICONV_T_DEF', cc.has_header_symbol('iconv.h', 'iconv_t', args : check_args))
+php_config_defs.set10('HAVE_ICONV_T_DEF', cc.has_header_symbol('iconv.h', 'iconv_t', args : check_args))
 
 check_types = [
     ['HAVE_LONG_DOUBLE', 'long double', ''],
@@ -526,7 +528,7 @@ check_types = [
 
 foreach t : check_types
     if cc.has_type(t.get(1), prefix : t.get(2), args : check_args)
-        cdata.set(t.get(0), 1)
+        php_config_defs.set(t.get(0), 1)
     endif
 endforeach
 
@@ -634,7 +636,7 @@ extension_defines = {
 
 foreach name, defines : extension_defines
     foreach define : defines
-        cdata.set(define, 1)
+        php_config_defs.set(define, 1)
     endforeach
 endforeach
 
@@ -643,7 +645,7 @@ endforeach
 # the extension options exist it will follow from those.
 foreach name : extension_defines.keys()
     if not cli_static_extensions.contains(name)
-        cdata.set('COMPILE_DL_' + name.to_upper(), 1)
+        php_config_defs.set('COMPILE_DL_' + name.to_upper(), 1)
     endif
 endforeach
 
@@ -651,56 +653,56 @@ endforeach
 # Defaults reproduce the configuration punk has always been built with:
 # debug + ZTS, sigchild, ucontext fibers, no JIT, no max-execution-timers.
 if get_option('zts')
-    cdata.set('ZTS', 1)
+    php_config_defs.set('ZTS', 1)
 endif
 if get_option('zend-debug')
-    cdata.set('ZEND_DEBUG', 1)
+    php_config_defs.set('ZEND_DEBUG', 1)
 endif
 if get_option('sigchild')
-    cdata.set('PHP_SIGCHILD', 1)
+    php_config_defs.set('PHP_SIGCHILD', 1)
 endif
 if not get_option('fiber-asm')
-    cdata.set('ZEND_FIBER_UCONTEXT', 1)
+    php_config_defs.set('ZEND_FIBER_UCONTEXT', 1)
 endif
 # Zend/Zend.m4 defines these by default: signals when sigaction exists, and the
 # stack limit check unless --disable-zend-check-stack-limit is given.
-cdata.set('ZEND_SIGNALS', 1)
-cdata.set('ZEND_CHECK_STACK_LIMIT', 1)
+php_config_defs.set('ZEND_SIGNALS', 1)
+php_config_defs.set('ZEND_CHECK_STACK_LIMIT', 1)
 
 # ---- build information ----------------------------------------------------
 uname = run_command('uname', '-a', check : false)
 if uname.returncode() == 0
     # Same as autoconf: the *build* machine's uname, so it reports the build host
     # when cross-compiling.
-    cdata.set_quoted('PHP_UNAME', uname.stdout().strip())
-    cdata.set_quoted('PHP_BUILD_SYSTEM', uname.stdout().strip())
+    php_config_defs.set_quoted('PHP_UNAME', uname.stdout().strip())
+    php_config_defs.set_quoted('PHP_BUILD_SYSTEM', uname.stdout().strip())
 endif
 # autoconf reports the OS with a capital letter ("Linux"), and tests compare
 # php_uname()/PHP_OS against that spelling.
 if host_machine.system() == 'linux'
-    cdata.set_quoted('PHP_OS', 'Linux')
+    php_config_defs.set_quoted('PHP_OS', 'Linux')
 else
-    cdata.set_quoted('PHP_OS', host_machine.system())
+    php_config_defs.set_quoted('PHP_OS', host_machine.system())
 endif
-cdata.set('HAVE_BUILD_DEFS_H', 1)
-cdata.set_quoted('DEFAULT_SHORT_OPEN_TAG', '1')
+php_config_defs.set('HAVE_BUILD_DEFS_H', 1)
+php_config_defs.set_quoted('DEFAULT_SHORT_OPEN_TAG', '1')
 
 # Struct details.  These are what the C library actually exposes rather than
 # separate functions, so they are member/symbol probes.
-cdata.set10('HAVE_STRUCT_TM_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
-cdata.set10('HAVE_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_TM_TM_GMTOFF', cc.has_member('struct tm', 'tm_gmtoff', prefix : '#include<time.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_STAT_ST_BLKSIZE', cc.has_member('struct stat', 'st_blksize', prefix : '#include<sys/stat.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_STAT_ST_BLOCKS', cc.has_member('struct stat', 'st_blocks', prefix : '#include<sys/stat.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_STAT_ST_RDEV', cc.has_member('struct stat', 'st_rdev', prefix : '#include<sys/stat.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY', cc.has_member('struct sockaddr_storage', 'ss_family', prefix : '#include<sys/socket.h>', args : check_args))
-cdata.set10('HAVE_STRUCT_UTSNAME_DOMAINNAME', cc.has_member('struct utsname', 'domainname', prefix : '#include<sys/utsname.h>', args : check_args))
-cdata.set10('GWINSZ_IN_SYS_IOCTL', cc.has_member('struct winsize', 'ws_row', prefix : '#include<sys/ioctl.h>', args : check_args))
-cdata.set10('MAJOR_IN_SYSMACROS', cc.has_header_symbol('sys/sysmacros.h', 'major', args : check_args))
-cdata.set10('HAVE_DECL_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_TM_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
+php_config_defs.set10('HAVE_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_TM_TM_GMTOFF', cc.has_member('struct tm', 'tm_gmtoff', prefix : '#include<time.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_STAT_ST_BLKSIZE', cc.has_member('struct stat', 'st_blksize', prefix : '#include<sys/stat.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_STAT_ST_BLOCKS', cc.has_member('struct stat', 'st_blocks', prefix : '#include<sys/stat.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_STAT_ST_RDEV', cc.has_member('struct stat', 'st_rdev', prefix : '#include<sys/stat.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY', cc.has_member('struct sockaddr_storage', 'ss_family', prefix : '#include<sys/socket.h>', args : check_args))
+php_config_defs.set10('HAVE_STRUCT_UTSNAME_DOMAINNAME', cc.has_member('struct utsname', 'domainname', prefix : '#include<sys/utsname.h>', args : check_args))
+php_config_defs.set10('GWINSZ_IN_SYS_IOCTL', cc.has_member('struct winsize', 'ws_row', prefix : '#include<sys/ioctl.h>', args : check_args))
+php_config_defs.set10('MAJOR_IN_SYSMACROS', cc.has_header_symbol('sys/sysmacros.h', 'major', args : check_args))
+php_config_defs.set10('HAVE_DECL_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
 
 # IPv6 support: what PHP means by HAVE_IPV6 is that the resolver can talk AF_INET6.
-cdata.set10('HAVE_IPV6', cc.has_header_symbol('netinet/in.h', 'AF_INET6', args : check_args))
+php_config_defs.set10('HAVE_IPV6', cc.has_header_symbol('netinet/in.h', 'AF_INET6', args : check_args))
 
 # Compiler builtins (php.m4's PHP_CHECK_BUILTIN_*).  Each is compiled rather
 # than linked, and a builtin that a target does not implement simply stays
@@ -726,17 +728,17 @@ check_builtins = [
 
 foreach b : check_builtins
     if cc.compiles(b.get(1), args : check_args, name : b.get(0))
-        cdata.set(b.get(0), 1)
+        php_config_defs.set(b.get(0), 1)
     endif
 endforeach
 
 # The standard extension turns chroot() and fnmatch() into feature defines of
 # their own, and date needs to know its config header is there.
-if cdata.has('HAVE_CHROOT')
-    cdata.set('ENABLE_CHROOT_FUNC', 1)
+if php_config_defs.has('HAVE_CHROOT')
+    php_config_defs.set('ENABLE_CHROOT_FUNC', 1)
 endif
-if cdata.has('HAVE_FNMATCH')
-    cdata.set('HAVE_FNMATCH', 1)
+if php_config_defs.has('HAVE_FNMATCH')
+    php_config_defs.set('HAVE_FNMATCH', 1)
 endif
 
 # ---- libraries ------------------------------------------------------------
@@ -830,7 +832,7 @@ library_symbols = [
 foreach probe : library_symbols
     probe_args = check_args + (probe.length() > 4 ? probe[4] : [])
     if cc.has_function(probe[1], prefix : probe[2], dependencies : probe[3], args : probe_args)
-        cdata.set(probe[0], 1)
+        php_config_defs.set(probe[0], 1)
     endif
 endforeach
 
@@ -842,16 +844,16 @@ library_headers = [
 
 foreach probe : library_headers
     if cc.has_header(probe[1], dependencies : probe[2], args : check_args + probe[3])
-        cdata.set(probe[0], 1)
+        php_config_defs.set(probe[0], 1)
     endif
 endforeach
 
 # makedev is a macro rather than a function, and epoll is what php.m4 tests with
 # a compile: sys/epoll.h plus a call to epoll_create().
-cdata.set10('HAVE_MAKEDEV', cc.has_header_symbol('sys/sysmacros.h', 'makedev', args : check_args))
-cdata.set10('HAVE_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
-cdata.set10('HAVE_LIBDL', cc.find_library('dl', required : false).found())
-cdata.set('HAVE_LIBSODIUMLIB', 1)
+php_config_defs.set10('HAVE_MAKEDEV', cc.has_header_symbol('sys/sysmacros.h', 'makedev', args : check_args))
+php_config_defs.set10('HAVE_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
+php_config_defs.set10('HAVE_LIBDL', cc.find_library('dl', required : false).found())
+php_config_defs.set('HAVE_LIBSODIUMLIB', 1)
 
 # Probes that need more than a symbol name.
 library_compiles = [
@@ -876,15 +878,15 @@ library_compiles = [
 
 foreach probe : library_compiles
     if cc.links(probe[1], dependencies : probe[2], args : check_args, name : probe[0])
-        cdata.set(probe[0], 1)
+        php_config_defs.set(probe[0], 1)
     endif
 endforeach
 
 # gd.  Punk always builds the bundled libgd, so the bundled-only defines come
 # from that choice, and the image formats from the libraries the extension links.
-cdata.set('HAVE_GD_BUNDLED', 1)
-cdata.set('HAVE_GD_GET_INTERPOLATION', 1)
-cdata.set('HAVE_GD_PNG_GET_VERSION_STRING', 1)
+php_config_defs.set('HAVE_GD_BUNDLED', 1)
+php_config_defs.set('HAVE_GD_GET_INTERPOLATION', 1)
+php_config_defs.set('HAVE_GD_PNG_GET_VERSION_STRING', 1)
 gd_formats = {
     'HAVE_GD_PNG': [dep_libpng],
     'HAVE_LIBPNG': [dep_libpng],
@@ -901,23 +903,23 @@ gd_formats = {
     'HAVE_LIBFREETYPE': [dep_freetype],
 }
 foreach define, deps : gd_formats
-    cdata.set(define, 1)
+    php_config_defs.set(define, 1)
 endforeach
 
 # mysqlnd enables SSL and compression when the libraries it can use are present.
-cdata.set('MYSQLND_HAVE_SSL', 1)
-cdata.set('MYSQLND_SSL_SUPPORTED', 1)
-cdata.set('MYSQLND_COMPRESSION_ENABLED', 1)
+php_config_defs.set('MYSQLND_HAVE_SSL', 1)
+php_config_defs.set('MYSQLND_SSL_SUPPORTED', 1)
+php_config_defs.set('MYSQLND_COMPRESSION_ENABLED', 1)
 
 # libedit always provides history_list, and the KOI8 workaround is what the
 # oniguruma in the platform image needs.
-cdata.set('HAVE_HISTORY_LIST', 1)
-cdata.set('PHP_ONIG_BAD_KOI8_ENTRY', 1)
+php_config_defs.set('HAVE_HISTORY_LIST', 1)
+php_config_defs.set('PHP_ONIG_BAD_KOI8_ENTRY', 1)
 
 # Policies that were configure options with these defaults.
-cdata.set('PCRE2_CODE_UNIT_WIDTH', 8)
-cdata.set('HAVE_HUGE_CODE_PAGES', 1)
-cdata.set_quoted('PHP_ICONV_IMPL', 'glibc')
+php_config_defs.set('PCRE2_CODE_UNIT_WIDTH', 8)
+php_config_defs.set('HAVE_HUGE_CODE_PAGES', 1)
+php_config_defs.set_quoted('PHP_ICONV_IMPL', 'glibc')
 
 # ---- compiler capabilities -------------------------------------------------
 # What PHP_FUNC_ATTRIBUTE / ax_gcc_func_attribute.m4 and the alignof/goto probes
@@ -927,7 +929,7 @@ foreach attr : [
     ['HAVE_FUNC_ATTRIBUTE_VISIBILITY', 'visibility'],
 ]
     if cc.has_function_attribute(attr[1])
-        cdata.set(attr[0], 1)
+        php_config_defs.set(attr[0], 1)
     endif
 endforeach
 
@@ -939,7 +941,7 @@ attribute_probes = [
 
 foreach probe : attribute_probes
     if cc.compiles(probe[1], args : check_args, name : probe[0])
-        cdata.set(probe[0], 1)
+        php_config_defs.set(probe[0], 1)
     endif
 endforeach
 
@@ -960,7 +962,7 @@ compiler_probes = [
 
 foreach probe : compiler_probes
     if cc.compiles(probe[1], args : check_args, name : probe[0])
-        cdata.set(probe[0], 1)
+        php_config_defs.set(probe[0], 1)
     endif
 endforeach
 
@@ -983,7 +985,7 @@ if meson.is_cross_build()
         error('no declared runtime answers for ' + host_machine.system() + '; add them to runtime_answers in build/meson.build')
     endif
     foreach name, value : runtime_answers[host_machine.system()]
-        cdata.set(name, value)
+        php_config_defs.set(name, value)
     endforeach
 else
     # Can PHP write to the standard output at all (the CLI SAPI cares)?
@@ -993,7 +995,7 @@ else
         name : 'PHP_WRITE_STDOUT',
     )
     if write_stdout.compiled() and write_stdout.returncode() == 0 and write_stdout.stdout().strip() == 'ok'
-        cdata.set('PHP_WRITE_STDOUT', 1)
+        php_config_defs.set('PHP_WRITE_STDOUT', 1)
     endif
 
     # Memory manager alignment: the alignment of a union of pointer, double and
@@ -1016,27 +1018,27 @@ else
         if parts.length() != 3
             error('could not determine the memory manager alignment')
         endif
-        cdata.set('ZEND_MM_ALIGNMENT', '(size_t)' + parts[0])
-        cdata.set('ZEND_MM_ALIGNMENT_LOG2', '(size_t)' + parts[1])
-        cdata.set('ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT', parts[2])
+        php_config_defs.set('ZEND_MM_ALIGNMENT', '(size_t)' + parts[0])
+        php_config_defs.set('ZEND_MM_ALIGNMENT_LOG2', '(size_t)' + parts[1])
+        php_config_defs.set('ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT', parts[2])
     else
         error('could not run the memory manager alignment probe')
     endif
 
     foreach name, value : runtime_answers[host_machine.system()]
-        cdata.set(name, value)
+        php_config_defs.set(name, value)
     endforeach
 endif
 
 # fork() is what proc_open needs on this side of the world.
-if cdata.has('HAVE_FORK')
-    cdata.set('PHP_CAN_SUPPORT_PROC_OPEN', 1)
+if php_config_defs.has('HAVE_FORK')
+    php_config_defs.set('PHP_CAN_SUPPORT_PROC_OPEN', 1)
 endif
 
 # Punk builds crypt itself rather than linking an external libcrypt, which is
 # what the absent --with-external-libcrypt means; it becomes an option when
 # somebody wants the external one.
-cdata.set('PHP_USE_PHP_CRYPT_R', 1)
+php_config_defs.set('PHP_USE_PHP_CRYPT_R', 1)
 
 # ---- deliberately not ported ----------------------------------------------
 # LT_OBJDIR, STDC_HEADERS       libtool and pre-C89 leftovers
@@ -1046,8 +1048,6 @@ cdata.set('PHP_USE_PHP_CRYPT_R', 1)
 # scripts/dev/compare-config-headers knows about these, so `just compare-config`
 # still reads as a completion gate.
 
-configure_file(
-    input : 'php_config.h.in',
-    output : 'php_config.h',
-    configuration : cdata,
-)
+# The header itself is written by main/meson.build, so that it lands in the
+# build's main/ directory: Zend/zend_config.h includes <../main/php_config.h>,
+# and that is where the file has to be for the include to resolve.

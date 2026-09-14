@@ -36,18 +36,26 @@ Every build goes through the root `justfile`, which requires `PLATFORM` to name 
 make or the platform shell script directly** — if a task has no recipe, add one to the `justfile` instead of
 working around it.
 
-Configuration and building are deliberately separate steps: `just configure` performs configuration (today
-`buildconf` plus the platform's autotools `configure` — a leftover the switch-over deletes in favour of
-`meson setup`), and `just meson` then builds and installs from that state without configuring anything
-itself. meson does run its own checks and generates its own config headers; the autotools ones exist for
-`just all` and `just test`.
+Configuration and building are deliberately separate steps, and there are two independent configurations:
+
+- `just configure` is the autotools one (`buildconf` plus the platform's `configure`). It writes the config
+  headers into the source tree and produces the `Makefile`s `just make`/`just test`/`just all` use.
+- `just _meson-setup` is the meson one (wipe the build directory, then `meson setup`); it runs its own checks
+  and generates its own copies of every config header into the build directory, so it borrows nothing from
+  autoconf. `just meson` builds and installs from that state, `just meson-rebuild` rebuilds in place.
+
+The autoconf chain stays until phpize has been dealt with, so the two have to keep working side by side;
+`just compare-config` (and a warning at meson setup time) reports it if their configuration headers ever stop
+agreeing.
 
 ```sh
-PLATFORM=aarch64-linux-gnu just configure       # once, and again after `just clean`
+PLATFORM=aarch64-linux-gnu just configure       # autotools configuration (writes the source-tree config headers)
+PLATFORM=aarch64-linux-gnu just _meson-setup    # meson configuration (owns the build dir; no autoconf needed)
 PLATFORM=aarch64-linux-gnu just meson           # meson: generate, setup, compile, test, install (wipes build dir + prefix)
 PLATFORM=aarch64-linux-gnu just meson-rebuild   # regenerate + rebuild in place (no wipe, no install)
 PLATFORM=aarch64-linux-gnu just check-modules   # load every built module, report the ones that fail
 PLATFORM=aarch64-linux-gnu just check-install   # php-config + installed headers: build an out-of-tree module against them
+PLATFORM=aarch64-linux-gnu just compare-config  # diff autoconf's php_config.h against meson's
 PLATFORM=aarch64-linux-gnu just all             # autotools: clean, configure, generate, make, install, test
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt   # .phpt suite, or one file/directory
 PLATFORM=aarch64-linux-gnu just test-installed  # .phpt suite against the installed binaries
@@ -60,7 +68,8 @@ PLATFORM=aarch64-linux-gnu just build-image     # rebuild the platform's docker 
 runnable on their own. `_meson-compile` only works once the generated lexers/parsers exist, which is why
 `meson-rebuild` wraps it. `just clean` deletes the autotools output *and* every ignored file under `ext/ main/
 sapi/ TSRM/ Zend/ scripts/ tests/` — including the generated sources and config headers, so a rebuild after
-`just clean` needs `just configure` (re-creates the headers) and `just meson` (re-creates the sources).
+`just clean` needs `just configure` (re-creates the headers) and `just meson` (re-creates the sources). A
+meson-only tree does not need `just configure` at all.
 
 | platform | how it runs |
 |---|---|

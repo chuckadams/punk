@@ -3,7 +3,7 @@
 
    Replaces the autoheader output that autoconf generated from configure.ac.
    configure_file() rewrites "#mesondefine NAME" into "#define NAME value" when
-   NAME is set and into "/* #undef NAME */" when it is not -- meson does not
+   NAME is set and into a commented-out undef when it is not -- meson does not
    understand autoconf's bare "#undef NAME" form, which is the only difference
    from the old template.  Tracked, unlike the generated main/php_config.h.in.
 */

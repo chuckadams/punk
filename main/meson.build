@@ -169,6 +169,16 @@ build_defs_h = configure_file(
     configuration: build_defs,
 )
 
+# The configuration header lives here rather than in build/ so that it is
+# generated into the build's main/ directory: Zend/zend_config.h (generated into
+# the build's Zend/) includes <../main/php_config.h>, which only resolves if the
+# two are siblings in the build tree.  build/meson.build filled the data in.
+php_config_h = configure_file(
+    input: php_config_template,
+    output: 'php_config.h',
+    configuration: php_config_defs,
+)
+
 install_headers(
     'SAPI.h',
     build_defs_h,
@@ -179,7 +189,7 @@ install_headers(
     'main_arginfo.h',
     'php.h',
     'php_compat.h',
-    'php_config.h',
+    php_config_h,
     'php_content_types.h',
     'php_getopt.h',
     'php_glob.h',

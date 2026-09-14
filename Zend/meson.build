@@ -95,7 +95,7 @@ zend_sources = files(
 # zend_config.h used to be an AC_CONFIG_COMMANDS heredoc; it is a one-line shim,
 # and generating it into the build directory is what makes its relative include
 # resolve to the build's php_config.h.
-configure_file(
+zend_config_h = configure_file(
     input : 'zend_config.h.in',
     output : 'zend_config.h',
     copy : true,
@@ -128,7 +128,7 @@ install_headers(
     'zend_closures.h',
     'zend_closures_arginfo.h',
     'zend_compile.h',
-    'zend_config.h',
+    zend_config_h,
     'zend_config.w32.h',
     'zend_constants.h',
     'zend_constants_arginfo.h',

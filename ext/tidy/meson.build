@@ -3,7 +3,7 @@ ext_tidy_sources = files(
 )
 
 # tidy's stupid pkgconf doesn't provide the include dir, and include_directories bombs if a dir doesn't exist
-ext_tidy_extra_includes = run_command('sh', '-c', 'for d in /usr/include/tidy; do [ -d "$d" ] && echo $d; done').stdout().strip().split('\n')
+ext_tidy_extra_includes = run_command('sh', '-c', 'for d in /usr/include/tidy; do [ -d "$d" ] && echo $d; done', check : false).stdout().strip().split('\n')
 
 shared_module(
     'tidy',
