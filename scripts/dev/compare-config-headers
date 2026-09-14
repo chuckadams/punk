@@ -13,6 +13,10 @@ import re
 import sys
 from collections import Counter
 
+# Values that legitimately differ between two configure runs on different
+# machines or at different times.
+VOLATILE = {'PHP_UNAME', 'PHP_BUILD_SYSTEM', 'PHP_BUILD_DATE'}
+
 DEFINE = re.compile(r'^#define\s+([A-Za-z_][A-Za-z0-9_]*)[ \t]*(.*)$')
 UNDEF = re.compile(r'^/\*\s*#undef\s+([A-Za-z_][A-Za-z0-9_]*)\s*\*/')
 
@@ -53,7 +57,7 @@ def main():
 
     missing = {n: v for n, v in auto_def.items() if n not in meson_def}
     differing = {n: (v, meson_def[n]) for n, v in auto_def.items()
-                 if n in meson_def and meson_def[n] != v}
+                 if n in meson_def and meson_def[n] != v and n not in VOLATILE}
     extra = {n: v for n, v in meson_def.items() if n not in auto_def and n not in auto_undef}
 
     print(f"autoconf: {len(auto_def):4d} defined ({auto_path})")

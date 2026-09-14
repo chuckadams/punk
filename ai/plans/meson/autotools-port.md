@@ -4,9 +4,10 @@ Goal: `php_config.h` and every other configure output come from meson, every m4
 file is deleted, and logic that lived in m4 moves to meson or to support scripts
 in bash/python.
 
-Status: **phase 1 done** (meson generates a config header covering 204 of
-autoconf's 449 symbols, with no value mismatches), phases 2-6 planned below.
-Five artifacts are still borrowed from autoconf; they are the finish line.
+Status: **phases 1-2 done** (meson generates a config header covering 351 of
+autoconf's 449 symbols, with no value mismatches and no symbols autoconf does not
+have), phases 3-6 planned below.  Five artifacts are still borrowed from
+autoconf; they are the finish line.
 
 ## Where configuration belongs in meson
 
@@ -151,20 +152,39 @@ deliberately dropped as non-Linux.
 - 239 header/function/declaration/type/sizeof checks; the scaffold's commented
   inventory shrank from ~300 to 225 tokens as entries were implemented.
 - `scripts/dev/compare-config-headers` + `just compare-config`: diffs the two
-  headers symbol by symbol and exits non-zero while they differ.
+  headers symbol by symbol, treats the inherently per-run `uname` strings as
+  volatile, and exits non-zero while they differ.
 
-Measured now: autoconf 449 defined, meson 204, no value mismatches, 257 not yet
-defined (132 platform/extension, 50 `COMPILE_DL_*`, 25 `PHP_*`, 21 other,
-12 `HAVE_LIB*`, 9 `HAVE_GD_*`, 7 `ZEND_*`, 1 declaration) and 12 symbols meson
-defines that autoconf does not (five are x86 intrinsics headers that clang ships
-on any target, the rest are checks where the two disagree and one of them is
-wrong — `HAVE_CLEARENV`, `HAVE_PTRACE`, `HAVE_CLOCK_GETTIME`, `HAVE_DECL_TZNAME`,
-`HAVE_TZNAME`, `HAVE_TIMES`).
+Measured after phase 1: autoconf 449 defined, meson 204.
 
-**Phase 2 — per-extension defines and build variants.** Generate
-`COMPILE_DL_<NAME>` and `HAVE_<EXT>` from the extension list, add the small
-option set, and make `ZTS`/`ZEND_DEBUG`/JIT/`PHP_*` build info real options.
-Exit: every remaining symbol except the library and runtime buckets matches.
+**Phase 2 — per-extension defines and build variants.** Done:
+- `extension_defines` gives every built extension its `HAVE_<EXT>` (plus the
+  sub-features that follow from the build rather than from probing: dba handlers,
+  `URI_*`, `PDO_USE_MYSQLND`, `HAVE_TIMELIB_CONFIG_H`, ...), and `COMPILE_DL_<NAME>`
+  is derived from `cli_static_extensions`, so the 50 shared modules and the 50
+  `COMPILE_DL_*` defines line up exactly with autoconf's.
+- Build variants are real options — `-Dzts`, `-Dzend-debug`, `-Dsigchild`,
+  `-Dfiber-asm` — defaulting to the configuration punk has always used.
+  (`debug` is a reserved meson option name, hence `zend-debug`.)
+- Build information: `PHP_OS`, `PHP_UNAME`/`PHP_BUILD_SYSTEM` from `uname -a`,
+  `HAVE_BUILD_DEFS_H`, `DEFAULT_SHORT_OPEN_TAG`, `PHP_SIGCHILD`,
+  `ZEND_SIGNALS`, `ZEND_FIBER_UCONTEXT`, `ZEND_CHECK_STACK_LIMIT`, the
+  `MAJOR_IN_SYSMACROS`/`GWINSZ_IN_SYS_IOCTL` probes and the 16
+  `PHP_HAVE_BUILTIN_*` compiler-builtin checks.
+- Two mistakes in the inherited scaffold were fixed on the way: the x86
+  intrinsics headers (`immintrin.h` and friends) are shipped by clang for every
+  target, so probing them would define `HAVE_IMMINTRIN_H` on aarch64, which is not
+  what autoconf did; and `linux/if/ether.h`/`linux/if/packet.h`/`linux/sock/diag.h`
+  were spelled with slashes where the headers use underscores.
+- Six symbols meson detects and autoconf did not (`clearenv`, `clock_gettime`,
+  `ptrace`, `times`, `tzname`, and the `tzname` declaration) are deliberately left
+  undefined for now: PHP changes behaviour when they are defined, so they need an
+  explicit decision rather than a silent divergence.
+
+Measured after phase 2: autoconf 449 defined, meson 351, no value mismatches, no
+symbols meson defines that autoconf does not, 99 still to go (64 platform or
+extension probes, 9 `HAVE_LIB*`, 8 `HAVE_GD_*`, 9 other, 5 `PHP_*`, 3 computed
+`ZEND_MM_*`, 1 declaration that only exists on FreeBSD).
 
 **Phase 3 — libraries.** `dependency()` for the 42 pkg-config sites, symbol
 probes for the 61 `PHP_CHECK_LIBRARY` sites, bundled-vs-external as explicit
@@ -181,12 +201,13 @@ the compiler capabilities. Exit: `just compare-config` prints no differences.
 
 **Phase 6 — switch over and delete.** Move the header generation to
 `main/meson.build` (so `<build>/main/php_config.h` shadows the source tree),
-`just configure` becomes `meson setup`, then delete `configure.ac`,
-`build/*.m4` (including 311 KB of libtool), 69 `ext/*/config.m4`, 9
-`sapi/*/config*.m4`, 9 `Makefile.frag`, `buildconf`, `Makefile.global`,
-`shtool`, `config.guess`/`config.sub`, `main/php_config.h.in`, and the autoconf
-step from `platform/_common/configure-cli` (its flags become meson options or a
-native file).
+`just configure` becomes `meson setup`, then delete the 92 tracked m4 files —
+`configure.ac`, the 11 in `build/` (including 311 KB of libtool), 69
+`ext/*/config*.m4`, 9 `sapi/*/config*.m4`, `Zend/Zend.m4`, `TSRM/threads.m4`,
+`scripts/phpize.m4` — plus 9 `Makefile.frag`, `buildconf`, `buildconf.bat`,
+`Makefile.global`, `shtool`, `config.guess`/`config.sub`, `main/php_config.h.in`,
+and the autoconf step from `platform/_common/configure-cli` (its flags become
+meson options or a native file).
 
 **Validation throughout**: `just compare-config` (symbol diff),
 `just meson-rebuild` (configures + builds), `just _meson-test` (full suite),
@@ -202,8 +223,9 @@ native file).
   volume rather than difficulty.
 - **Runtime probes** are where a wrong answer is silent: the per-platform table
   must be small, explicit and reviewed, not inferred.
-- **Twelve extra symbols** in meson's header need individual review before the
-  diff can be trusted as a completion gate.
+- **The diff is only a gate once the adjudications are done**: the six symbols
+  meson detects but autoconf did not, and the `HAVE_DECL_P_JAILID` style
+  non-Linux leftovers, must be either restored or explicitly dropped.
 - **`_GNU_SOURCE` and friends** are currently supplied by autoconf's header even
   to meson-compiled sources; phase 6 must not lose them.
 - **Cross-compilation** is not solved by this plan beyond keeping `cc.run()`

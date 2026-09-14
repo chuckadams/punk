@@ -6,6 +6,10 @@ cdata = configuration_data()
 # Checks must see the same feature-test macros as the build, or GNU/POSIX
 # extensions look absent (accept4, gettid, sched_*, strptime, tm_zone, ...).
 check_args = ['-D_GNU_SOURCE']
+# Headers.  The x86 intrinsics headers (immintrin.h, nmmintrin.h, tmmintrin.h,
+# wmmintrin.h, cpuid.h) are deliberately absent: clang ships them for every
+# target, so probing them here would define HAVE_IMMINTRIN_H on aarch64, which is
+# not what autoconf did (it only checks them for x86).
 check_headers = [
     'alloca.h',
     'arpa/inet.h',
@@ -17,7 +21,6 @@ check_headers = [
     'cli0env.h',
     'cli0ext.h',
     'commoncrypto/commonrandom.h',
-    'cpuid.h',
     'crypt.h',
     'dirent.h',
     'dlfcn.h',
@@ -26,7 +29,6 @@ check_headers = [
     'grp.h',
     'ieeefp.h',
     'iconv.h',
-    'immintrin.h',
     'inttypes.h',
     'iodbc.h',
     'io.h',
@@ -36,14 +38,13 @@ check_headers = [
     'libproc.h',
     'librarymanager.h',
     'linux/filter.h',
-    'linux/if/ether.h',
-    'linux/if/packet.h',
-    'linux/sock/diag.h',
+    'linux/if_ether.h',
+    'linux/if_packet.h',
+    'linux/sock_diag.h',
     'linux/udp.h',
     'minix/config.h',
     'netinet/in.h',
     'net/if.h',
-    'nmmintrin.h',
     'odbc.h',
     'poll.h',
     'pty.h',
@@ -91,14 +92,12 @@ check_headers = [
     'tidyp.h',
     'tidy.h',
     'timelib/config.h',
-    'tmmintrin.h',
     'udbcext.h',
     'unistd.h',
     'unix.h',
     'utime.h',
     'valgrind/cachegrind.h',
     'wchar.h',
-    'wmmintrin.h',
 ]
 
 foreach h : check_headers
@@ -111,7 +110,6 @@ check_functions = [
     ['HAVE_ACCEPT4', 'accept4', '#include<sys/socket.h>'],
     ['HAVE_ALLOCA', 'alloca', '#include<alloca.h>'],
     ['HAVE_CHROOT', 'chroot', '#include<unistd.h>'],
-    ['HAVE_CLOCK_GETTIME', 'clock_gettime', '#include<time.h>'],
     ['HAVE_CTERMID', 'ctermid', '#include<stdio.h>'],
     ['HAVE_CTIME_R', 'ctime_r', '#include<time.h>'],
     ['HAVE_FDATASYNC', 'fdatasync', '#include<unistd.h>'],
@@ -131,7 +129,7 @@ check_functions = [
     ['HAVE_GETPRIORITY', 'getpriority', '#include<sys/resource.h>'],
     ['HAVE_GETPWNAM_R', 'getpwnam', '#include<pwd.h>'],
     ['HAVE_GETPWUID_R', 'getpwuid_r', '#include<pwd.h>'],
-    ['HAVE_GETRANDOM', 'getrandom', '#include<linux/random.h>'],
+    ['HAVE_GETRANDOM', 'getrandom', '#include<sys/random.h>'],
     ['HAVE_GETSID', 'getsid', '#include<unistd.h>'],
     ['HAVE_GETTIMEOFDAY', 'gettimeofday', '#include<sys/time.h>'],
     ['HAVE_GETWD', 'getwd', '#include<unistd.h>'],
@@ -171,7 +169,7 @@ check_functions = [
     ['HAVE_SIGTIMEDWAIT', 'sigtimedwait', '#include<signal.h>'],
     ['HAVE_SIGWAITINFO', 'sigwaitinfo', '#include<signal.h>'],
     ['HAVE_SOCKETPAIR', 'socketpair', '#include<sys/socket.h>'],
-    ['HAVE_STATFS', 'statfs', '#include<mount.h>'],
+    ['HAVE_STATFS', 'statfs', '#include<sys/vfs.h>'],
     ['HAVE_STATVFS', 'statvfs', '#include<sys/statvfs.h>'],
     ['HAVE_STRCASECMP', 'strcasecmp', '#include<strings.h>'],
     ['HAVE_STRERROR_R', 'strerror_r', '#include<string.h>'],
@@ -180,8 +178,6 @@ check_functions = [
     ['HAVE_STRNDUP', 'strndup', '#include<string.h>'],
     ['HAVE_STRTOLL', 'strtoll', '#include<stdlib.h>'],
     ['HAVE_SYMLINK', 'symlink', '#include<unistd.h>'],
-    ['HAVE_TIMES', 'times', '#include<sys/times.h>'],
-    ['HAVE_TZNAME', 'tzname', '#include<time.h>'],
     ['HAVE_UNSETENV', 'unsetenv', '#include<stdlib.h>'],
     ['HAVE_USLEEP', 'usleep', '#include<unistd.h>'],
     ['HAVE_UTIMES', 'utimes', '#include<sys/time.h>'],
@@ -417,12 +413,19 @@ check_functions = [
     # check token ['HAVE___ATOMIC_EXCHANGE_1']
 
     # added by the meson port
+    ['HAVE_SCHED_GETCPU', 'sched_getcpu', '#include<sched.h>'],
+    ['HAVE_TTYNAME_R', 'ttyname_r', '#include<unistd.h>'],
+    ['HAVE_MAKEDEV', 'makedev', '#include<sys/sysmacros.h>'],
+    ['HAVE_FNMATCH', 'fnmatch', '#include<fnmatch.h>'],
+    ['HAVE_MEMSET_EXPLICIT', 'memset_explicit', '#include<string.h>'],
+    ['HAVE_DN_EXPAND', 'dn_expand', '#include<resolv.h>'],
+    ['HAVE_DN_SKIPNAME', 'dn_skipname', '#include<resolv.h>'],
+    ['HAVE_EPOLL_CREATE1', 'epoll_create1', '#include<sys/epoll.h>'],
     ['HAVE_ALPHASORT', 'alphasort', '#include<dirent.h>'],
     ['HAVE_ARC4RANDOM_BUF', 'arc4random_buf', '#include<stdlib.h>'],
     ['HAVE_ASCTIME_R', 'asctime_r', '#include<time.h>'],
     ['HAVE_ASPRINTF', 'asprintf', '#include<stdio.h>'],
     ['HAVE_ATOLL', 'atoll', '#include<stdlib.h>'],
-    ['HAVE_CLEARENV', 'clearenv', '#include<stdlib.h>'],
     ['HAVE_COPY_FILE_RANGE', 'copy_file_range', '#include<unistd.h>'],
     ['HAVE_CRYPT', 'crypt', '#include<crypt.h>'],
     ['HAVE_CRYPT_R', 'crypt_r', '#include<crypt.h>'],
@@ -455,7 +458,6 @@ check_functions = [
     ['HAVE_PTHREAD_ATTR_GET_NP', 'pthread_attr_get_np', '#include<pthread.h>'],
     ['HAVE_PTHREAD_ATTR_GETSTACK', 'pthread_attr_getstack', '#include<pthread.h>'],
     ['HAVE_PTHREAD_GETATTR_NP', 'pthread_getattr_np', '#include<pthread.h>'],
-    ['HAVE_PTRACE', 'ptrace', '#include<sys/ptrace.h>'],
     ['HAVE_REALLOCARRAY', 'reallocarray', '#include<stdlib.h>'],
     ['HAVE_RES_NDESTROY', 'res_ndestroy', '#include<resolv.h>'],
     ['HAVE_RES_NSEARCH', 'res_nsearch', '#include<resolv.h>'],
@@ -491,9 +493,14 @@ cdata.set('SIZEOF_LONG_LONG', cc.sizeof('long long'))
 cdata.set('SIZEOF_OFF_T', cc.sizeof('off_t', prefix : '#include<sys/types.h>'))
 cdata.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
 
+# Adjudicate before the switch: meson's checks find clearenv, clock_gettime,
+# ptrace, times, tzname and the tzname declaration, while autoconf left all six
+# undefined.  PHP changes behaviour when they are defined (hrtime switches to
+# clock_gettime, putenv to clearenv), so they are left out until someone decides
+# which answer is right rather than silently changing how punk behaves.
+
 # Declarations have to be defined to 0 when absent -- leaving them undefined is
 # not the same as "not declared" for the code that uses these.
-cdata.set10('HAVE_DECL_TZNAME', cc.has_header_symbol('time.h', 'tzname', args : check_args))
 cdata.set10('HAVE_DECL_STRERROR_R', cc.has_header_symbol('string.h', 'strerror_r', args : check_args))
 cdata.set10('HAVE_DECL_STRPTIME', cc.has_header_symbol('time.h', 'strptime', args : check_args))
 cdata.set10('HAVE_DECL_WCONTINUED', cc.has_header_symbol('sys/wait.h', 'WCONTINUED', args : check_args))
@@ -548,6 +555,191 @@ endforeach
 #   __atomic_exchange_1, __alignof__, __attribute__((aligned)) -> compiler
 #                       capability checks, cc.compiles/has_function_attribute
 #   HAVE_MEMFD_CREATE is set in the root meson.build today; it belongs here.
+
+# ---- extensions -----------------------------------------------------------
+# The defines each extension contributes when it is built in, which is the
+# meson-side counterpart of the per-extension AC_DEFINEs.  Library and
+# behaviour probes that depend on what a library actually provides (gd's image
+# formats, pgsql's HAVE_PG_*, snmp's SHA-256 support, tidy's TidyOptGet*, ...)
+# are deliberately absent: they belong with the dependency checks phase 3 adds.
+# Extensions that are linked into the binaries must not define COMPILE_DL_<name>
+# either -- that define means "loadable module", and it is what the ZEND_GET_MODULE
+# block in each extension keys off.
+extension_defines = {
+    'bcmath': ['HAVE_BCMATH'],
+    'bz2': ['HAVE_BZ2'],
+    'calendar': ['HAVE_CALENDAR'],
+    'ctype': ['HAVE_CTYPE'],
+    'curl': ['HAVE_CURL'],
+    'date': ['HAVE_DATE', 'HAVE_TIMELIB_CONFIG_H'],
+    'dba': ['HAVE_DBA', 'HAVE_DBA', 'DBA_CDB', 'DBA_CDB_BUILTIN', 'DBA_FLATFILE', 'DBA_INIFILE'],
+    'dl_test': ['HAVE_DL_TEST'],
+    'dom': ['HAVE_DOM'],
+    'enchant': ['HAVE_ENCHANT', 'HAVE_ENCHANT', 'HAVE_ENCHANT_GET_VERSION'],
+    'exif': ['HAVE_EXIF'],
+    'ffi': ['HAVE_FFI'],
+    'fileinfo': ['HAVE_FILEINFO'],
+    'filter': ['HAVE_FILTER'],
+    'ftp': ['HAVE_FTP', 'HAVE_FTP', 'HAVE_FTP_SSL'],
+    'gd': ['HAVE_GD', 'HAVE_GD_BUNDLED'],
+    'gettext': ['HAVE_GETTEXT', 'HAVE_LIBINTL', 'HAVE_BIND_TEXTDOMAIN_CODESET', 'HAVE_NGETTEXT', 'HAVE_DNGETTEXT', 'HAVE_DCNGETTEXT'],
+    'gmp': ['HAVE_GMP'],
+    'hash': ['HAVE_HASH'],
+    'iconv': ['HAVE_ICONV'],
+    'intl': ['HAVE_INTL'],
+    'json': ['HAVE_JSON'],
+    'ldap': ['HAVE_LDAP', 'HAVE_LDAP', 'HAVE_LDAP_SASL'],
+    'lexbor': ['HAVE_LEXBOR'],
+    'libxml': ['HAVE_LIBXML'],
+    'mbstring': ['HAVE_MBSTRING', 'HAVE_MBSTRING', 'HAVE_MBREGEX'],
+    'mysqli': ['HAVE_MYSQLI'],
+    'mysqlnd': ['HAVE_MYSQLND'],
+    'opcache': ['HAVE_OPCACHE'],
+    'openssl': ['HAVE_OPENSSL'],
+    'pcntl': ['HAVE_PCNTL'],
+    'pcre': ['HAVE_PCRE'],
+    'pdo': ['HAVE_PDO'],
+    'pdo_firebird': ['HAVE_PDO_FIREBIRD'],
+    'pdo_mysql': ['HAVE_PDO_MYSQL', 'PDO_USE_MYSQLND'],
+    'pdo_pgsql': ['HAVE_PDO_PGSQL', 'HAVE_PDO_PGSQL'],
+    'pdo_sqlite': ['HAVE_PDO_SQLITE'],
+    'pgsql': ['HAVE_PGSQL', 'HAVE_PGSQL'],
+    'phar': ['HAVE_PHAR'],
+    'posix': ['HAVE_POSIX'],
+    'random': ['HAVE_RANDOM'],
+    'readline': ['HAVE_READLINE', 'HAVE_LIBEDIT'],
+    'reflection': ['HAVE_REFLECTION'],
+    'session': ['HAVE_SESSION', 'HAVE_PHP_SESSION'],
+    'shmop': ['HAVE_SHMOP'],
+    'simplexml': ['HAVE_SIMPLEXML'],
+    'snmp': ['HAVE_SNMP'],
+    'soap': ['HAVE_SOAP'],
+    'sockets': ['HAVE_SOCKETS'],
+    'sodium': ['HAVE_SODIUM'],
+    'spl': ['HAVE_SPL'],
+    'sqlite3': ['HAVE_SQLITE3'],
+    'standard': ['HAVE_STANDARD', 'HAVE_ARGON2LIB'],
+    'sysvmsg': ['HAVE_SYSVMSG'],
+    'sysvsem': ['HAVE_SYSVSEM'],
+    'sysvshm': ['HAVE_SYSVSHM'],
+    'tidy': ['HAVE_TIDY'],
+    'tokenizer': ['HAVE_TOKENIZER'],
+    'uri': ['HAVE_URI', 'URI_ENABLE_ANSI', 'URI_NO_UNICODE'],
+    'xml': ['HAVE_XML'],
+    'xmlreader': ['HAVE_XMLREADER'],
+    'xmlwriter': ['HAVE_XMLWRITER'],
+    'xsl': ['HAVE_XSL', 'HAVE_XSL', 'HAVE_XSL_EXSLT'],
+    'zend_test': ['HAVE_ZEND_TEST'],
+    'zip': ['HAVE_ZIP'],
+    'zlib': ['HAVE_ZLIB'],
+}
+
+foreach name, defines : extension_defines
+    foreach define : defines
+        cdata.set(define, 1)
+    endforeach
+endforeach
+
+# COMPILE_DL_<name> for everything that becomes a loadable module.  Today that is
+# "everything not listed in cli_static_extensions in the root meson.build"; once
+# the extension options exist it will follow from those.
+foreach name : extension_defines.keys()
+    if not cli_static_extensions.contains(name)
+        cdata.set('COMPILE_DL_' + name.to_upper(), 1)
+    endif
+endforeach
+
+# ---- build variants -------------------------------------------------------
+# Defaults reproduce the configuration punk has always been built with:
+# debug + ZTS, sigchild, ucontext fibers, no JIT, no max-execution-timers.
+if get_option('zts')
+    cdata.set('ZTS', 1)
+endif
+if get_option('zend-debug')
+    cdata.set('ZEND_DEBUG', 1)
+endif
+if get_option('sigchild')
+    cdata.set('PHP_SIGCHILD', 1)
+endif
+if not get_option('fiber-asm')
+    cdata.set('ZEND_FIBER_UCONTEXT', 1)
+endif
+# Zend/Zend.m4 defines these by default: signals when sigaction exists, and the
+# stack limit check unless --disable-zend-check-stack-limit is given.
+cdata.set('ZEND_SIGNALS', 1)
+cdata.set('ZEND_CHECK_STACK_LIMIT', 1)
+
+# ---- build information ----------------------------------------------------
+uname = run_command('uname', '-a', check : false)
+if uname.returncode() == 0
+    # Same as autoconf: the *build* machine's uname, so it reports the build host
+    # when cross-compiling.
+    cdata.set_quoted('PHP_UNAME', uname.stdout().strip())
+    cdata.set_quoted('PHP_BUILD_SYSTEM', uname.stdout().strip())
+endif
+# autoconf reports the OS with a capital letter ("Linux"), and tests compare
+# php_uname()/PHP_OS against that spelling.
+if host_machine.system() == 'linux'
+    cdata.set_quoted('PHP_OS', 'Linux')
+else
+    cdata.set_quoted('PHP_OS', host_machine.system())
+endif
+cdata.set('HAVE_BUILD_DEFS_H', 1)
+cdata.set_quoted('DEFAULT_SHORT_OPEN_TAG', '1')
+
+# Struct details.  These are what the C library actually exposes rather than
+# separate functions, so they are member/symbol probes.
+cdata.set10('HAVE_STRUCT_TM_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
+cdata.set10('HAVE_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_TM_TM_GMTOFF', cc.has_member('struct tm', 'tm_gmtoff', prefix : '#include<time.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_STAT_ST_BLKSIZE', cc.has_member('struct stat', 'st_blksize', prefix : '#include<sys/stat.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_STAT_ST_BLOCKS', cc.has_member('struct stat', 'st_blocks', prefix : '#include<sys/stat.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_STAT_ST_RDEV', cc.has_member('struct stat', 'st_rdev', prefix : '#include<sys/stat.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY', cc.has_member('struct sockaddr_storage', 'ss_family', prefix : '#include<sys/socket.h>', args : check_args))
+cdata.set10('HAVE_STRUCT_UTSNAME_DOMAINNAME', cc.has_member('struct utsname', 'domainname', prefix : '#include<sys/utsname.h>', args : check_args))
+cdata.set10('GWINSZ_IN_SYS_IOCTL', cc.has_member('struct winsize', 'ws_row', prefix : '#include<sys/ioctl.h>', args : check_args))
+cdata.set10('MAJOR_IN_SYSMACROS', cc.has_header_symbol('sys/sysmacros.h', 'major', args : check_args))
+cdata.set10('HAVE_DECL_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
+
+# IPv6 support: what PHP means by HAVE_IPV6 is that the resolver can talk AF_INET6.
+cdata.set10('HAVE_IPV6', cc.has_header_symbol('netinet/in.h', 'AF_INET6', args : check_args))
+
+# Compiler builtins (php.m4's PHP_CHECK_BUILTIN_*).  Each is compiled rather
+# than linked, and a builtin that a target does not implement simply stays
+# undefined: __builtin_cpu_supports, for instance, is x86-only.
+check_builtins = [
+    ['PHP_HAVE_BUILTIN_CLZ', 'int main(void) { return __builtin_clz(1u); }'],
+    ['PHP_HAVE_BUILTIN_CLZL', 'int main(void) { return (int) __builtin_clzl(1ul); }'],
+    ['PHP_HAVE_BUILTIN_CLZLL', 'int main(void) { return (int) __builtin_clzll(1ull); }'],
+    ['PHP_HAVE_BUILTIN_CTZL', 'int main(void) { return (int) __builtin_ctzl(1ul); }'],
+    ['PHP_HAVE_BUILTIN_CTZLL', 'int main(void) { return (int) __builtin_ctzll(1ull); }'],
+    ['PHP_HAVE_BUILTIN_EXPECT', 'int main(void) { return __builtin_expect(1, 1); }'],
+    ['PHP_HAVE_BUILTIN_UNREACHABLE', 'int main(void) { __builtin_unreachable(); }'],
+    ['PHP_HAVE_BUILTIN_FRAME_ADDRESS', 'int main(void) { return __builtin_frame_address(0) != 0; }'],
+    ['PHP_HAVE_BUILTIN_SADDL_OVERFLOW', 'int main(void) { int r; return __builtin_saddl_overflow(1, 1, &r); }'],
+    ['PHP_HAVE_BUILTIN_SADDLL_OVERFLOW', 'int main(void) { long long r; return __builtin_saddll_overflow(1, 1, &r); }'],
+    ['PHP_HAVE_BUILTIN_SMULL_OVERFLOW', 'int main(void) { long r; return __builtin_smull_overflow(1, 1, &r); }'],
+    ['PHP_HAVE_BUILTIN_SMULLL_OVERFLOW', 'int main(void) { long long r; return __builtin_smull_overflow(1, 1, (long long *) &r); }'],
+    ['PHP_HAVE_BUILTIN_SSUBL_OVERFLOW', 'int main(void) { int r; return __builtin_ssubl_overflow(1, 1, &r); }'],
+    ['PHP_HAVE_BUILTIN_SSUBLL_OVERFLOW', 'int main(void) { long long r; return __builtin_ssubll_overflow(1, 1, &r); }'],
+    ['PHP_HAVE_BUILTIN_USUB_OVERFLOW', 'int main(void) { unsigned int r; return __builtin_usub_overflow(1u, 1u, &r); }'],
+    ['PHP_HAVE_BUILTIN_CPU_SUPPORTS', 'int main(void) { return __builtin_cpu_supports("sse2"); }'],
+]
+
+foreach b : check_builtins
+    if cc.compiles(b.get(1), args : check_args, name : b.get(0))
+        cdata.set(b.get(0), 1)
+    endif
+endforeach
+
+# The standard extension turns chroot() and fnmatch() into feature defines of
+# their own, and date needs to know its config header is there.
+if cdata.has('HAVE_CHROOT')
+    cdata.set('ENABLE_CHROOT_FUNC', 1)
+endif
+if cdata.has('HAVE_FNMATCH')
+    cdata.set('HAVE_FNMATCH', 1)
+endif
 
 configure_file(
     input : 'php_config.h.in',
