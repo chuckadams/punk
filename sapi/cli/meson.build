@@ -9,9 +9,10 @@ sapi_cli_sources = files(
 
 sapi_cli_exe = executable(
     'punk',
-    # ext/standard/basic_functions.c includes <zend_language_parser.h>, generated
-    # in Zend/; listing it as a source orders the generator first.
-    [punk_frontend_sources, sapi_cli_sources, zend_language_parser_gen[1]],
+    # ext/standard/basic_functions.c includes <zend_language_parser.h> and
+    # ext/opcache includes zend_vm_opcodes.h, both generated in Zend/; listing
+    # them as sources orders the generators before this target compiles.
+    [punk_frontend_sources, sapi_cli_sources, zend_language_parser_gen[1], zend_vm_gen[0]],
     c_args : static_c_args,
     dependencies : punk_frontend_dependencies,
     include_directories : includes,

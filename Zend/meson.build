@@ -135,6 +135,22 @@ zend_ini_parser_gen = custom_target(
     command : [bison, '-Wall', '-v', '-d', '@INPUT@', '-o', '@OUTPUT0@'],
 )
 
+php = find_program('php')
+
+# zend_vm_gen.php writes the four VM files into its own source directory, and
+# those files are committed -- upstream regenerates them constantly, so
+# un-committing them to generate into the build tree would make every upstream
+# merge fight the deletion.  meson runs the script in place, exactly as
+# build/regenerate does, and records a stamp as its build-side output; the
+# compiler's depfiles then notice the rewritten headers and recompile what
+# changed.
+zend_vm_gen = custom_target(
+    'zend_vm',
+    input : ['zend_vm_def.h', 'zend_vm_execute.skl', 'zend_vm_gen.php'],
+    output : 'zend_vm.stamp',
+    command : [find_program('sh'), '-c', 'php "$1" && : > "$2"', 'sh', '@INPUT2@', '@OUTPUT@'],
+)
+
 zend_objs = static_library(
     'zend_objs',
     zend_sources,
@@ -142,6 +158,7 @@ zend_objs = static_library(
     zend_ini_scanner_gen[0],
     zend_language_parser_gen[0],
     zend_language_scanner_gen[0],
+    zend_vm_gen[0],
     c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
