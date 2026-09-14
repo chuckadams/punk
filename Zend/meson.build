@@ -95,7 +95,7 @@ zend_sources = files(
 zend_objs = static_library(
     'zend_objs',
     zend_sources,
-    c_args : [],
+    c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
 )

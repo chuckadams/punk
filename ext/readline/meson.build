@@ -3,11 +3,13 @@ ext_readline_sources = files(
     'readline_cli.c',
 )
 
-shared_module(
-    'readline',
-    [ext_readline_sources],
-    name_prefix: '',
-    c_args: [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('readline')
+    shared_module(
+        'readline',
+        [ext_readline_sources],
+        name_prefix: '',
+        c_args: [],
+        include_directories : [includes],
+        install : true,
+    )
+endif

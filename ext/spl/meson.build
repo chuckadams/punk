@@ -11,14 +11,16 @@ ext_spl_sources = files(
     'spl_observer.c',
 )
 
-shared_module(
-    'spl',
-    [ext_spl_sources],
-    name_prefix : '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('spl')
+    shared_module(
+        'spl',
+        [ext_spl_sources],
+        name_prefix : '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif
 
 install_headers(
     'php_spl.h',

@@ -56,7 +56,7 @@ main_sources = files(
 main_objs = static_library(
     'main_objs',
     main_sources,
-    c_args : [],
+    c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
 )

@@ -35,13 +35,15 @@ ext_uri_sources = files(
     'uriparser/src/UriVersion.c',
 )
 
-shared_module(
-    'uri',
-    [ext_uri_sources],
-    name_prefix: '',
-    c_args : [],
-    # annoyingly, doesn't work: we still need to put ext/uri/uriparser/include in the root includes
-    include_directories : [includes, 'uriparser/include',],
-    dependencies: [],
-    install : true,
-)
+if not cli_static_extensions.contains('uri')
+    shared_module(
+        'uri',
+        [ext_uri_sources],
+        name_prefix: '',
+        c_args : [],
+        # annoyingly, doesn't work: we still need to put ext/uri/uriparser/include in the root includes
+        include_directories : [includes, 'uriparser/include',],
+        dependencies: [],
+        install : true,
+    )
+endif

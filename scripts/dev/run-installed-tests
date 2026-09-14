@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Run the .phpt suite against an installed punk, without a makefile.
+#
+# usage: run-installed-tests <punk binary> [test path ...]
+#
+# Mirrors what `make test` does for a build tree: the tested processes run with
+# no php.ini, the usual PHP_TEST_SETTINGS, and every shared module installed
+# beside the binary loaded through -d extension=. Modules that are compiled into
+# the binary are skipped, since loading those again only produces "already
+# loaded" warnings, and dl_test is skipped the way the makefile does it (it is a
+# test fixture rather than a feature).
+#
+# PUNK_TEST_INI=<file> makes the tested processes use that php.ini instead of
+# -n. TEST_PHP_ARGS (e.g. "-q -j12") is picked up by run-tests.php itself.
+
+set -euo pipefail
+
+binary=${1:?usage: run-installed-tests <punk binary> [test path ...]}
+shift || true
+
+binary_dir=$(cd "$(dirname "$binary")" && pwd)
+binary=$binary_dir/$(basename "$binary")
+prefix=$(dirname "$binary_dir")
+ext_dir=$prefix/lib
+
+if [ ! -x "$binary" ]; then
+    echo "run-installed-tests: no executable at $binary -- install with 'just meson'" >&2
+    exit 1
+fi
+
+src_dir=$(cd "$(dirname "$0")/../.." && pwd)
+
+# Whatever the binary already provides must not be loaded a second time. Asking
+# the binary (rather than hardcoding a list) keeps this correct when the set of
+# extensions linked into the CLI changes.
+builtin_modules=$("$binary" -n -r 'echo implode("\n", get_loaded_extensions());' 2>/dev/null \
+    | tr '[:upper:]' '[:lower:]' | sed 's/^zend //')
+
+module_args=()
+shopt -s nullglob
+for so in "$ext_dir"/*.so; do
+    name=$(basename "$so" .so)
+    [ "$name" = dl_test ] && continue
+    grep -qx "$name" <<<"$builtin_modules" && continue
+    module_args+=(-d "extension=$so")
+done
+
+if [ ${#module_args[@]} -eq 0 ]; then
+    echo "run-installed-tests: no shared modules found in $ext_dir" >&2
+    exit 1
+fi
+
+settings=(-d 'open_basedir=' -d 'output_buffering=0' -d 'memory_limit=-1')
+if [ -n "${PUNK_TEST_INI:-}" ]; then
+    ini_args=(-c "$PUNK_TEST_INI")
+else
+    ini_args=(-n)
+fi
+
+# run-tests.php drives --POST--/--GET--/--COOKIE--/--CGI-- tests through the CGI
+# binary. Its own lookup derives "php-cgi" from the tested binary's name, which
+# finds nothing next to a binary called "punk" and then falls back to that
+# binary, so point it at the installed php-cgi explicitly.
+if [ -x "$prefix/bin/php-cgi" ]; then
+    export TEST_PHP_CGI_EXECUTABLE=$prefix/bin/php-cgi
+else
+    echo "run-installed-tests: warning: no $prefix/bin/php-cgi, web tests will fail" >&2
+fi
+
+echo "run-installed-tests: $binary with $(( ${#module_args[@]} / 2 )) modules from $ext_dir"
+
+cd "$src_dir"
+TEST_PHP_EXECUTABLE=$binary \
+TEST_PHP_SRCDIR=$src_dir \
+CC=${CC:-cc} \
+NO_INTERACTION=1 \
+    exec "$binary" "${ini_args[@]}" "${settings[@]}" \
+        "$src_dir/run-tests.php" "${ini_args[@]}" "${settings[@]}" "${module_args[@]}" "$@"

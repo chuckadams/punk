@@ -56,11 +56,16 @@ make:
 # run the test suite, optionally limited to individual tests or directories:
 #   just test Zend/tests/foo.phpt
 test *TESTS:
-    -{{shell}} make test {{TESTS}}
+    -{{shell}} make test TESTS="{{TESTS}}"
+
+# run the .phpt suite against the installed binary (see `just meson`), without make:
+#   just test-installed ext/curl/tests
+test-installed *TESTS:
+    {{shell}} scripts/dev/run-installed-tests {{prefix}}/bin/punk {{TESTS}}
 
 install: _wipe-install
     {{shell}} make install
-    {{shell}} find {{prefix}}/lib/php/extensions/* -type f
+    {{shell}} bash -c 'find {{prefix}}/lib/php/extensions/* -type f'
 
 clean:
     rm -rf {{platform_dir}}/config.cache autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
@@ -94,5 +99,7 @@ _meson-install: _wipe-install
 _wipe-build:
     rm -rf {{meson_build_dir}}
 
+# the prefix lives inside the container / platform environment, so this has to
+# run through the platform shell rather than on the host
 _wipe-install:
-    [ -n {{prefix}} ] && rm -rf {{prefix}}/*
+    {{shell}} bash -c '[ -n {{prefix}} ] && rm -rf {{prefix}}/*'

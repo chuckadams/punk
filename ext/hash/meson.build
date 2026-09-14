@@ -28,19 +28,21 @@ ext_hash_sources = files(
 ext_hash_objs = static_library(
     'ext_hash_objs',
     ext_hash_sources,
-    c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'],
+    c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'] + static_c_args,
     include_directories: [includes, 'sha3/generic64lc'],
     build_by_default: false,
 )
 
-shared_module(
-    'hash',
-    [ext_hash_sources],
-    name_prefix: '',
-    c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'],
-    include_directories: [includes, 'sha3/generic64lc'],
-    install : true,
-)
+if not cli_static_extensions.contains('hash')
+    shared_module(
+        'hash',
+        [ext_hash_sources],
+        name_prefix: '',
+        c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'],
+        include_directories: [includes, 'sha3/generic64lc'],
+        install : true,
+    )
+endif
 
 install_headers(
     'php_hash.h',

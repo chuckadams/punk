@@ -23,14 +23,16 @@ ext_mysqlnd_sources = files(
     'php_mysqlnd.c',
 )
 
-shared_module(
-    'mysqlnd',
-    [ext_mysqlnd_sources],
-    name_prefix : '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('mysqlnd')
+    shared_module(
+        'mysqlnd',
+        [ext_mysqlnd_sources],
+        name_prefix : '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif
 
 install_headers(
     'config-win.h',

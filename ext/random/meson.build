@@ -11,14 +11,16 @@ ext_random_sources = files(
     'zend_utils.c',
 )
 
-shared_module(
-    'random',
-    [ext_random_sources],
-    name_prefix: '',
-    c_args: [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('random')
+    shared_module(
+        'random',
+        [ext_random_sources],
+        name_prefix: '',
+        c_args: [],
+        include_directories : [includes],
+        install : true,
+    )
+endif
 
 install_headers(
     'php_random.h',

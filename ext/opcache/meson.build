@@ -22,11 +22,13 @@ ext_opcache_sources = files(
 #    'jit/zend_jit_vm_helpers.c',
 )
 
-shared_module(
-    'opcache',
-    [ext_opcache_sources],
-    name_prefix: '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('opcache')
+    shared_module(
+        'opcache',
+        [ext_opcache_sources],
+        name_prefix: '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif

@@ -10,14 +10,16 @@ ext_mysqli_sources = files(
     'mysqli_warning.c',
 )
 
-shared_module(
-    'mysqli',
-    [ext_mysqli_sources],
-    name_prefix : '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('mysqli')
+    shared_module(
+        'mysqli',
+        [ext_mysqli_sources],
+        name_prefix : '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif
 
 install_headers(
     'mysqli_mysqlnd.h',

@@ -81,7 +81,12 @@ ext_intl_c_args = [
     '-DU_HIDE_OBSOLETE_UTF_OLD_H=1',
     '-D__STDC_LIMIT_MACROS',
     '-D__STDC_CONSTANT_MACROS',
-    '-D__STDC_FORMAT_MACROS'
+    '-D__STDC_FORMAT_MACROS',
+    '-DZEND_ENABLE_STATIC_TSRMLS_CACHE=1',
+    # ICU_CXXFLAGS from PHP_SETUP_ICU (build/php.m4): without these, intl's C++
+    # objects are compiled against different UnicodeString constructors
+    '-DUNISTR_FROM_CHAR_EXPLICIT=explicit',
+    '-DUNISTR_FROM_STRING_EXPLICIT=explicit',
 ]
 
 ext_intl_objs = static_library(
@@ -93,12 +98,14 @@ ext_intl_objs = static_library(
     build_by_default : false,
 )
 
-shared_module(
-    'intl',
-    [ext_intl_sources],
-    name_prefix: '',
-    c_args : ext_intl_c_args,
-    cpp_args : ext_intl_c_args,
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('intl')
+    shared_module(
+        'intl',
+        [ext_intl_sources],
+        name_prefix: '',
+        c_args : ext_intl_c_args,
+        cpp_args : ext_intl_c_args,
+        include_directories : [includes],
+        install : true,
+    )
+endif

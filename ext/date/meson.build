@@ -15,14 +15,16 @@ ext_date_sources = files(
     'lib/unixtime2tm.c',
 )
 
-shared_module(
-    'date',
-    [ext_date_sources],
-    name_prefix: '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('date')
+    shared_module(
+        'date',
+        [ext_date_sources],
+        name_prefix: '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif
 
 install_headers(
     'php_date.h',

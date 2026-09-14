@@ -193,11 +193,13 @@ ext_lexbor_sources = files(
     'lexbor/url/url.c',
 )
 
-shared_module(
-    'lexbor',
-    [ext_lexbor_sources],
-    name_prefix: '',
-    c_args : [],
-    include_directories : [includes],
-    install : true,
-)
+if not cli_static_extensions.contains('lexbor')
+    shared_module(
+        'lexbor',
+        [ext_lexbor_sources],
+        name_prefix: '',
+        c_args : [],
+        include_directories : [includes],
+        install : true,
+    )
+endif

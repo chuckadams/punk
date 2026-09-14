@@ -36,21 +36,23 @@ ext_pcre_sources = files(
 ext_pcre_objs = static_library(
     'ext_pcre_objs',
     ext_pcre_sources,
-    c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
+    c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'] + static_c_args,
     include_directories : [includes],
     dependencies : [dependency('libpcre2-8')],
     build_by_default : false,
 )
 
-shared_module(
-    'pcre',
-    [ext_pcre_sources],
-    name_prefix : '',
-    c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
-    include_directories : [includes],
-    dependencies : [dependency('libpcre2-8')],
-    install : true,
-)
+if not cli_static_extensions.contains('pcre')
+    shared_module(
+        'pcre',
+        [ext_pcre_sources],
+        name_prefix : '',
+        c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
+        include_directories : [includes],
+        dependencies : [dependency('libpcre2-8')],
+        install : true,
+    )
+endif
 
 install_headers(
     'php_pcre.h',
