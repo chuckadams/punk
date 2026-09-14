@@ -82,6 +82,11 @@ build-image:
 check-modules:
     {{shell}} scripts/dev/check-modules {{meson_build_dir}}
 
+# how much of autoconf's config header meson reproduces yet; exits non-zero
+# while the two differ, so it can gate the switch to meson's header
+compare-config:
+    {{shell}} scripts/dev/compare-config-headers main/php_config.h {{meson_build_dir}}/build/php_config.h
+
 meson: generate _meson-setup _meson-compile _meson-test _meson-install
 
 # regenerate sources, then rebuild in place -- no wipe, no install

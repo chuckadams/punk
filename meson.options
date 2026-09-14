@@ -1,1 +1,4 @@
-option('configure', type : 'boolean', description : 'Run configuration step')
+# Options land here as the autoconf port progresses: --with/--enable become
+# feature options here, and meson setup -D<name>=... / meson configure -D<name>=...
+# replace the old configure flags.  For now only the migration switch below
+# exists, and it will go away with the last generated header.

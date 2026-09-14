@@ -14,9 +14,11 @@ cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language : 'c')
 add_project_arguments(['-DPUNK', '-DPUNK_MESON'], language : ['c', 'cpp'])
 
-#if get_option('configure')
-#    subdir('build')
-#endif
+# Configuration checks for the generated config header.  Meson has no separate
+# configure phase: this runs at setup (and again whenever the build description
+# changes or options are edited), which is the equivalent of autoconf's
+# configure step.  There is deliberately no option gating it.
+subdir('build')
 
 add_project_arguments('-DHAVE_MEMFD_CREATE', language : 'c')  # TODO: fix includes so this doesn't need to be global
 
