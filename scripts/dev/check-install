@@ -97,14 +97,20 @@ ok "an out-of-tree module compiles against the install and runs"
 echo "checking the wholesale header directories"
 # configure.ac's PHP_INSTALL_HEADERS names these directories without a file
 # list, so autoconf installs every header in them.  (Zend/Optimizer is not one
-# of them: there the nine installed headers are named individually.)
+# of them: there the nine installed headers are named individually.)  The shell
+# glob gives direct children only, and the git filter skips gitignored build
+# products -- a few generated headers (zend_language_parser.h, the scanner
+# defs, and the config headers) that meson writes into its own build directory
+# and only autoconf drops into the source tree.
 for dir in TSRM Zend main main/streams ext/standard ext/mysqlnd ext/gd/libgd; do
     [ -d "$src/$dir" ] || continue
     missing=0
     for header in "$src/$dir"/*.h; do
         [ -e "$header" ] || continue
-        [ -f "$prefix/include/php/$dir/$(basename "$header")" ] || {
-            printf '  missing %s/%s\n' "$dir" "$(basename "$header")" >&2
+        rel="$dir/$(basename "$header")"
+        git -C "$src" ls-files --error-unmatch "$rel" >/dev/null 2>&1 || continue
+        [ -f "$prefix/include/php/$rel" ] || {
+            printf '  missing %s\n' "$rel" >&2
             missing=$((missing + 1))
         }
     done

@@ -7,7 +7,9 @@ sapi_cgi_sources = files(
 # php-cgi alongside the CLI.
 sapi_cgi_exe = executable(
     'php-cgi',
-    [punk_frontend_sources, sapi_cgi_sources],
+    # ext/standard/basic_functions.c includes <zend_language_parser.h>, generated
+    # in Zend/; listing it as a source orders the generator first.
+    [punk_frontend_sources, sapi_cgi_sources, zend_language_parser_gen[1]],
     c_args : static_c_args,
     dependencies : punk_frontend_dependencies,
     include_directories : includes,

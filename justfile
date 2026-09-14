@@ -93,10 +93,10 @@ check-install:
 compare-config:
     {{shell}} scripts/dev/compare-config-headers main/php_config.h {{meson_build_dir}}/main/php_config.h
 
-meson: generate _meson-setup _meson-compile _meson-test _meson-install
+meson: _meson-setup _meson-compile _meson-test _meson-install
 
-# regenerate sources, then rebuild in place -- no wipe, no install
-meson-rebuild: generate _meson-compile
+# rebuild in place -- no wipe, no install
+meson-rebuild: _meson-compile
 
 _meson-setup: _wipe-build
     {{shell}} meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}

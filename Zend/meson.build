@@ -28,13 +28,9 @@ zend_sources = files(
     'zend_highlight.c',
     'zend_hrtime.c',
     'zend_inheritance.c',
-    'zend_ini_parser.c',
-    'zend_ini_scanner.c',
     'zend_ini.c',
     'zend_interfaces.c',
     'zend_iterators.c',
-    'zend_language_parser.c',
-    'zend_language_scanner.c',
     'zend_lazy_objects.c',
     'zend_list.c',
     'zend_llist.c',
@@ -101,9 +97,51 @@ zend_config_h = configure_file(
     copy : true,
 )
 
+# The scanner and parser sources are generated, and are gitignored rather than
+# committed, so meson produces its own copies into the build directory with the
+# exact flags build/regenerate uses for autoconf.  re2c and bison are plain
+# custom_target invocations; the one post-processing step -- making zendparse
+# exported -- is folded into the bison command via perl.
+re2c = find_program('re2c')
+bison = find_program('bison')
+
+zend_language_scanner_gen = custom_target(
+    'zend_language_scanner',
+    input : 'zend_language_scanner.l',
+    output : ['zend_language_scanner.c', 'zend_language_scanner_defs.h'],
+    command : [re2c, '--no-generation-date', '-W', '-g', '--case-inverted',
+               '-cbdFt', '@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'],
+)
+
+zend_ini_scanner_gen = custom_target(
+    'zend_ini_scanner',
+    input : 'zend_ini_scanner.l',
+    output : ['zend_ini_scanner.c', 'zend_ini_scanner_defs.h'],
+    command : [re2c, '--no-generation-date', '-W', '-g', '--case-inverted',
+               '-cbdFt', '@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'],
+)
+
+zend_language_parser_gen = custom_target(
+    'zend_language_parser',
+    input : 'zend_language_parser.y',
+    output : ['zend_language_parser.c', 'zend_language_parser.h'],
+    command : [find_program('sh'), files('../build/gen-language-parser.sh'), '@INPUT@', '@OUTPUT0@', '@OUTPUT1@'],
+)
+
+zend_ini_parser_gen = custom_target(
+    'zend_ini_parser',
+    input : 'zend_ini_parser.y',
+    output : ['zend_ini_parser.c', 'zend_ini_parser.h'],
+    command : [bison, '-Wall', '-v', '-d', '@INPUT@', '-o', '@OUTPUT0@'],
+)
+
 zend_objs = static_library(
     'zend_objs',
     zend_sources,
+    zend_ini_parser_gen[0],
+    zend_ini_scanner_gen[0],
+    zend_language_parser_gen[0],
+    zend_language_scanner_gen[0],
     c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
@@ -156,15 +194,11 @@ install_headers(
     'zend_hrtime.h',
     'zend_inheritance.h',
     'zend_ini.h',
-    'zend_ini_parser.h',
     'zend_ini_scanner.h',
-    'zend_ini_scanner_defs.h',
     'zend_interfaces.h',
     'zend_interfaces_arginfo.h',
     'zend_iterators.h',
-    'zend_language_parser.h',
     'zend_language_scanner.h',
-    'zend_language_scanner_defs.h',
     'zend_lazy_objects.h',
     'zend_list.h',
     'zend_llist.h',

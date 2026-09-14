@@ -67,6 +67,14 @@ includes = include_directories(
     # first consumer: ext/intl, ext/opcache, ext/session, ext/soap and
     # ext/standard all reach it through php_date.h.
     'ext/date/lib',
+    # The re2c/bison-generated .c files live in the build tree, so a quoted
+    # include no longer finds the sibling headers in their own source directory
+    # the way a checked-out source file would.  These are the four extensions
+    # whose generated files include a non-generated sibling by bare name.
+    'ext/standard',
+    'ext/json',
+    'ext/pdo',
+    'ext/phar',
 )
 
 

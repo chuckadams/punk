@@ -61,14 +61,30 @@ ext_standard_sources = files(
     'type.c',
     'uniqid.c',
     'url.c',
-    'url_scanner_ex.c',
     'user_filters.c',
     'uuencode.c',
     'var.c',
-    'var_unserializer.c',
     'versioning.c',
     'libavifinfo/avifinfo.c',
 )
+
+re2c = find_program('re2c')
+
+url_scanner_ex_gen = custom_target(
+    'url_scanner_ex',
+    input: 'url_scanner_ex.re',
+    output: 'url_scanner_ex.c',
+    command: [re2c, '--no-generation-date', '-W', '-g', '-b', '-o', '@OUTPUT@', '@INPUT@'],
+)
+
+var_unserializer_gen = custom_target(
+    'var_unserializer',
+    input: 'var_unserializer.re',
+    output: 'var_unserializer.c',
+    command: [re2c, '--no-generation-date', '-W', '-g', '-b', '-o', '@OUTPUT@', '@INPUT@'],
+)
+
+ext_standard_sources += [url_scanner_ex_gen[0], var_unserializer_gen[0]]
 
 ext_standard_objs = static_library(
     'ext_standard_objs',
