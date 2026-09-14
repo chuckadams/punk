@@ -4,9 +4,9 @@ Goal: `php_config.h` and every other configure output come from meson, every m4
 file is deleted, and logic that lived in m4 moves to meson or to support scripts
 in bash/python.
 
-Status: **phases 1-2 done** (meson generates a config header covering 351 of
+Status: **phases 1-3 done** (meson generates a config header covering 429 of
 autoconf's 449 symbols, with no value mismatches and no symbols autoconf does not
-have), phases 3-6 planned below.  Five artifacts are still borrowed from
+have), phases 4-6 planned below.  Five artifacts are still borrowed from
 autoconf; they are the finish line.
 
 ## Where configuration belongs in meson
@@ -181,15 +181,37 @@ Measured after phase 1: autoconf 449 defined, meson 204.
   undefined for now: PHP changes behaviour when they are defined, so they need an
   explicit decision rather than a silent divergence.
 
-Measured after phase 2: autoconf 449 defined, meson 351, no value mismatches, no
-symbols meson defines that autoconf does not, 99 still to go (64 platform or
-extension probes, 9 `HAVE_LIB*`, 8 `HAVE_GD_*`, 9 other, 5 `PHP_*`, 3 computed
-`ZEND_MM_*`, 1 declaration that only exists on FreeBSD).
+Measured after phase 2: autoconf 449 defined, meson 351.
 
-**Phase 3 — libraries.** `dependency()` for the 42 pkg-config sites, symbol
-probes for the 61 `PHP_CHECK_LIBRARY` sites, bundled-vs-external as explicit
-options (libgd, pcre2), and the gd/pgsql/snmp/tidy/readline/mysqlnd/iconv
-behaviour probes. Exit: the `HAVE_LIB*`/`HAVE_GD_*` categories are empty.
+**Phase 3 — libraries.** Done:
+- The library probes became meson dependencies: `dependency('libpq')`,
+  `libldap`/`lber`, `netsnmp`, `tidy`, `libedit`, `libzip`, `openssl`,
+  `libpcre2-8`, `gmp`, `sqlite3`, `libargon2`, `zlib`, `libffi`, `oniguruma`,
+  and the image libraries gd uses.  A missing library is now a configuration
+  error rather than a silently disabled feature.
+- Three tables drive the rest: `library_symbols` (a symbol in a library, with the
+  header that declares it, which is what `PHP_CHECK_LIBRARY` did),
+  `library_headers`, and `library_compiles` for probes that need a body
+  (`PGVerbosity`/`PQERRORS_SQLSTATE`, three-argument `ldap_set_rebind_proc`,
+  `FFI_SYSV`, glibc iconv, oniguruma's KOI8 entry, opcache's three shared-memory
+  backends, `rl_erase_empty_line`).
+- gd's image formats follow from the libraries it links, and the bundled-libgd
+  defines from the fact that punk always builds the bundled one.
+- Probes that autoconf answered with a link test rather than a declaration needed
+  care: `has_function` adds `-Werror=implicit-function-declaration`, so each probe
+  carries the header that declares its symbol (this is why five of them failed
+  first time round — `getgroups` is in unistd.h, `mknod` in sys/stat.h,
+  `makedev` is a macro that needs a symbol check, `pcre2.h` needs
+  `PCRE2_CODE_UNIT_WIDTH` defined before it is included, and OpenSSL declares
+  `OSSL_set_max_threads` in openssl/thread.h, not crypto.h).
+- tidy keeps its headers in `/usr/include/tidy` and its `.pc` omits that path, so
+  the checks pass it explicitly, matching what ext/tidy/meson.build already does.
+
+Measured after phase 3: autoconf 449 defined, meson 429, still no value
+mismatches and no extra symbols.  The remaining 20 are the phase 4 work (7
+runtime probes, 6 compiler-capability checks, 3 computed `ZEND_MM_ALIGNMENT`
+values) and the 5 to delete rather than port (`LT_OBJDIR`, `STDC_HEADERS`,
+`HAVE_PRESERVE_NONE`, `HAVE_DECL_P_JAILID`, `HAVE_USERFAULTFD_WRITEFAULT`).
 
 **Phase 4 — runtime and struct probes.** Per-platform answer table for the 36
 `AC_RUN_IFELSE` checks, `cc.has_member` for the struct details, `cc.compiles` for

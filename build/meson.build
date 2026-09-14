@@ -120,7 +120,7 @@ check_functions = [
     ['HAVE_GETADDRINFO', 'getaddrinfo', '#include<netdb.h>'],
     ['HAVE_GETGRGID_R', 'getgrgid_r', '#include<grp.h>'],
     ['HAVE_GETGRNAM_R', 'getgrnam_r', '#include<grp.h>'],
-    ['HAVE_GETGROUPS', 'getgroups', '#include<grp.h>'],
+    ['HAVE_GETGROUPS', 'getgroups', '#include<unistd.h>'],
     ['HAVE_GETHOSTBYNAME_R', 'gethostbyname_r', '#include<netdb.h>'],
     ['HAVE_GETLOADAVG', 'getloadavg', '#include<stdlib.h>'],
     ['HAVE_GETLOGIN', 'getlogin', '#include<unistd.h>'],
@@ -142,11 +142,10 @@ check_functions = [
     ['HAVE_KILL', 'kill', '#include<signal.h>'],
     ['HAVE_KQUEUE', 'kqueue', '#include<sys/event.h>'],
     ['HAVE_LCHOWN', 'lchown', '#include<unistd.h>'],
-    ['HAVE_MAKEDEV', 'makedev', '#include<sys/sysmacros.h>'],
     ['HAVE_MEMMEM', 'memmem', '#include<string.h>'],
     ['HAVE_MEMRCHR', 'memrchr', '#include<string.h>'],
     ['HAVE_MKFIFO', 'mkfifo', '#include<sys/stat.h>'],
-    ['HAVE_MKNOD', 'mknod', '#include<unistd.h>'],
+    ['HAVE_MKNOD', 'mknod', '#include<sys/stat.h>'],
     ['HAVE_MMAP', 'mmap', '#include<sys/mman.h>'],
     ['HAVE_MPROTECT', 'mprotect', '#include<sys/mman.h>'],
     ['HAVE_NANOSLEEP', 'nanosleep', '#include<time.h>'],
@@ -415,7 +414,6 @@ check_functions = [
     # added by the meson port
     ['HAVE_SCHED_GETCPU', 'sched_getcpu', '#include<sched.h>'],
     ['HAVE_TTYNAME_R', 'ttyname_r', '#include<unistd.h>'],
-    ['HAVE_MAKEDEV', 'makedev', '#include<sys/sysmacros.h>'],
     ['HAVE_FNMATCH', 'fnmatch', '#include<fnmatch.h>'],
     ['HAVE_MEMSET_EXPLICIT', 'memset_explicit', '#include<string.h>'],
     ['HAVE_DN_EXPAND', 'dn_expand', '#include<resolv.h>'],
@@ -595,7 +593,7 @@ extension_defines = {
     'mysqli': ['HAVE_MYSQLI'],
     'mysqlnd': ['HAVE_MYSQLND'],
     'opcache': ['HAVE_OPCACHE'],
-    'openssl': ['HAVE_OPENSSL'],
+    'openssl': ['HAVE_OPENSSL', 'HAVE_OPENSSL_EXT'],
     'pcntl': ['HAVE_PCNTL'],
     'pcre': ['HAVE_PCRE'],
     'pdo': ['HAVE_PDO'],
@@ -740,6 +738,186 @@ endif
 if cdata.has('HAVE_FNMATCH')
     cdata.set('HAVE_FNMATCH', 1)
 endif
+
+# ---- libraries ------------------------------------------------------------
+net_snmp_prefix = '#include<net-snmp/net-snmp-config.h>\n#include<net-snmp/net-snmp-includes.h>'
+
+# What config.m4 probed with pkg-config or PHP_CHECK_LIBRARY, expressed as meson
+# dependencies.  These are the same libraries the extension targets link (meson
+# caches the lookups), and a missing one is a configuration error rather than a
+# silently disabled feature.
+dep_libpq = dependency('libpq')
+dep_ldap = dependency('ldap')
+dep_lber = dependency('lber')
+dep_netsnmp = dependency('netsnmp')
+dep_tidy = dependency('tidy')
+dep_libedit = dependency('libedit')
+dep_libzip = dependency('libzip')
+dep_openssl = dependency('openssl')
+dep_libpcre2 = dependency('libpcre2-8')
+dep_libgmp = dependency('gmp')
+dep_sqlite3 = dependency('sqlite3')
+dep_libargon2 = dependency('libargon2')
+dep_zlib = dependency('zlib')
+dep_libffi = dependency('libffi')
+dep_oniguruma = dependency('oniguruma')
+dep_freetype = dependency('freetype2')
+dep_libpng = dependency('libpng')
+dep_libjpeg = dependency('libjpeg')
+dep_libwebp = dependency('libwebp')
+dep_libavif = dependency('libavif')
+dep_xpm = dependency('xpm')
+
+# tidy's pkg-config file does not carry its include dir (see ext/tidy/meson.build).
+tidy_include_args = []
+if run_command('sh', '-c', '[ -d /usr/include/tidy ]', check : false).returncode() == 0
+    tidy_include_args = ['-I/usr/include/tidy']
+endif
+
+# Functions that only exist in a newer version of a library: the define is what
+# PHP uses to decide whether to call them.
+library_symbols = [
+    # PostgreSQL (PHP_CHECK_LIBRARY in ext/pgsql/config.m4)
+    ['HAVE_PG_RESULT_MEMORY_SIZE', 'PQresultMemorySize', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PG_CHANGE_PASSWORD', 'PQchangePassword', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PG_SOCKET_POLL', 'PQsocketPoll', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PG_CLOSE_STMT', 'PQclosePrepared', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PQCLOSEPREPARED', 'PQclosePrepared', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PQCLOSEPORTAL', 'PQclosePortal', '#include<libpq-fe.h>', [dep_libpq]],
+    ['HAVE_PG_SET_CHUNKED_ROWS_SIZE', 'PQsetChunkedRowsMode', '#include<libpq-fe.h>', [dep_libpq]],
+    # OpenLDAP
+    ['HAVE_LDAP_CONTROL_FIND', 'ldap_control_find', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_EXTENDED_OPERATION_S', 'ldap_extended_operation_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_PARSE_EXTENDED_RESULT', 'ldap_parse_extended_result', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_PARSE_REFERENCE', 'ldap_parse_reference', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_PARSE_RESULT', 'ldap_parse_result', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_PASSWD', 'ldap_passwd', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_REFRESH_S', 'ldap_refresh_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_START_TLS_S', 'ldap_start_tls_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    ['HAVE_LDAP_WHOAMI_S', 'ldap_whoami_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
+    # net-snmp
+    ['HAVE_NETSNMP_INIT_MIB', 'netsnmp_init_mib', net_snmp_prefix, [dep_netsnmp]],
+    ['HAVE_SHUTDOWN_SNMP_LOGGING', 'shutdown_snmp_logging', net_snmp_prefix, [dep_netsnmp]],
+    ['HAVE_SNMP_SHA256', 'usmHMAC192SHA256AuthProtocol', net_snmp_prefix, [dep_netsnmp]],
+    ['HAVE_SNMP_SHA512', 'usmHMAC384SHA512AuthProtocol', net_snmp_prefix, [dep_netsnmp]],
+    # tidy
+    ['HAVE_TIDYOPTGETDOC', 'tidyOptGetDoc', '#include<tidy.h>', [dep_tidy], tidy_include_args],
+    ['HAVE_TIDYOPTGETCATEGORY', 'tidyOptGetCategory', '#include<tidy.h>', [dep_tidy], tidy_include_args],
+    ['HAVE_TIDYRELEASEDATE', 'tidyReleaseDate', '#include<tidy.h>', [dep_tidy], tidy_include_args],
+    # readline, which punk builds against libedit (--with-libedit)
+    ['HAVE_RL_CALLBACK_READ_CHAR', 'rl_callback_read_char', '#include<editline/readline.h>', [dep_libedit]],
+    ['HAVE_RL_ON_NEW_LINE', 'rl_on_new_line', '#include<editline/readline.h>', [dep_libedit]],
+    ['HAVE_RL_COMPLETION_MATCHES', 'rl_completion_matches', '#include<editline/readline.h>', [dep_libedit]],
+    ['HAVE_HISTORY_LIST', 'history_list', '#include<histedit.h>', [dep_libedit]],
+    # libzip
+    ['HAVE_ENCRYPTION', 'zip_file_set_encryption', '#include<zip.h>', [dep_libzip]],
+    ['HAVE_PROGRESS_CALLBACK', 'zip_register_progress_callback_with_state', '#include<zip.h>', [dep_libzip]],
+    ['HAVE_CANCEL_CALLBACK', 'zip_register_cancel_callback_with_state', '#include<zip.h>', [dep_libzip]],
+    ['HAVE_METHOD_SUPPORTED', 'zip_compression_method_supported', '#include<zip.h>', [dep_libzip]],
+    ['HAVE_LIBZIP_VERSION', 'zip_libzip_version', '#include<zip.h>', [dep_libzip]],
+    # openssl: the check config0.m4 uses for argon2 support
+    ['HAVE_OPENSSL_ARGON2', 'OSSL_set_max_threads', '#include<openssl/thread.h>', [dep_openssl]],
+    # external pcre2
+    ['HAVE_PCRE_JIT_SUPPORT', 'pcre2_jit_compile', '#define PCRE2_CODE_UNIT_WIDTH 8\n#include<pcre2.h>', [dep_libpcre2]],
+    # gmp
+    ['HAVE___GMPZ_POWM_SEC', '__gmpz_powm_sec', '#include<gmp.h>', [dep_libgmp]],
+    ['HAVE___GMPZ_PREVPRIME', '__gmpz_prevprime', '#include<gmp.h>', [dep_libgmp]],
+    # sqlite3
+    ['HAVE_SQLITE3_EXPANDED_SQL', 'sqlite3_expanded_sql', '#include<sqlite3.h>', [dep_sqlite3]],
+    ['HAVE_SQLITE3_COLUMN_TABLE_NAME', 'sqlite3_column_table_name', '#include<sqlite3.h>', [dep_sqlite3]],
+]
+
+foreach probe : library_symbols
+    probe_args = check_args + (probe.length() > 4 ? probe[4] : [])
+    if cc.has_function(probe[1], prefix : probe[2], dependencies : probe[3], args : probe_args)
+        cdata.set(probe[0], 1)
+    endif
+endforeach
+
+# Headers that only exist when the library is installed.
+library_headers = [
+    ['HAVE_TIDY_H', 'tidy.h', [dep_tidy], tidy_include_args],
+    ['HAVE_TIDYBUFFIO_H', 'tidybuffio.h', [dep_tidy], tidy_include_args],
+]
+
+foreach probe : library_headers
+    if cc.has_header(probe[1], dependencies : probe[2], args : check_args + probe[3])
+        cdata.set(probe[0], 1)
+    endif
+endforeach
+
+# makedev is a macro rather than a function, and epoll is what php.m4 tests with
+# a compile: sys/epoll.h plus a call to epoll_create().
+cdata.set10('HAVE_MAKEDEV', cc.has_header_symbol('sys/sysmacros.h', 'makedev', args : check_args))
+cdata.set10('HAVE_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
+cdata.set10('HAVE_LIBDL', cc.find_library('dl', required : false).found())
+cdata.set('HAVE_LIBSODIUMLIB', 1)
+
+# Probes that need more than a symbol name.
+library_compiles = [
+    # PGVerbosity gained PQERRORS_SQLSTATE in PostgreSQL 18
+    ['HAVE_PQERRORS_SQLSTATE', '#include<libpq-fe.h>\nint main(void) { PGVerbosity e = PQERRORS_SQLSTATE; (void) e; return 0; }', [dep_libpq]],
+    # three-argument ldap_set_rebind_proc
+    ['HAVE_3ARG_SETREBINDPROC', '#include<ldap.h>\nint main(void) { ldap_set_rebind_proc(0, 0, 0); return 0; }', [dep_ldap, dep_lber]],
+    # libffi calling conventions
+    ['HAVE_FFI_SYSV', '#include<ffi.h>\nint main(void) { return FFI_SYSV; }', [dep_libffi]],
+    # iconv implementation: glibc's own, which is what the platform image has
+    ['HAVE_GLIBC_ICONV', '#include<iconv.h>\n#ifndef __GLIBC__\n# error "not glibc iconv"\n#endif\nint main(void) { return 0; }', []],
+    # oniguruma's KOI8 entry is off by one in older releases
+    ['PHP_ONIG_BAD_KOI8_ENTRY', '#include<stdint.h>\n#include<oniguruma.h>\nint main(void) { return (intptr_t) (ONIG_ENCODING_KOI8 + 1); }', [dep_oniguruma]],
+    # opcache's shared memory backends (config.m4 sets every one that works)
+    ['HAVE_SHM_IPC', '#include<sys/ipc.h>\n#include<sys/shm.h>\nint main(void) { return shmget(0, 0, 0) == -1; }', []],
+    ['HAVE_SHM_MMAP_ANON', '#include<sys/mman.h>\nint main(void) { return mmap(0, 0, 0, MAP_ANON | MAP_SHARED, -1, 0) == MAP_FAILED; }', []],
+    ['HAVE_SHM_MMAP_POSIX', '#include<sys/mman.h>\n#include<sys/stat.h>\n#include<fcntl.h>\nint main(void) { return shm_open("/x", O_RDWR, 0600) == -1; }', []],
+    ['HAVE_EPOLL', '#include<sys/epoll.h>\nint main(void) { int fd = epoll_create(1); return fd; }', []],
+    # readline declaration rather than a symbol
+    ['HAVE_ERASE_EMPTY_LINE', '#include<editline/readline.h>\nint main(void) { rl_erase_empty_line = 0; return rl_erase_empty_line; }', [dep_libedit]],
+]
+
+foreach probe : library_compiles
+    if cc.links(probe[1], dependencies : probe[2], args : check_args, name : probe[0])
+        cdata.set(probe[0], 1)
+    endif
+endforeach
+
+# gd.  Punk always builds the bundled libgd, so the bundled-only defines come
+# from that choice, and the image formats from the libraries the extension links.
+cdata.set('HAVE_GD_BUNDLED', 1)
+cdata.set('HAVE_GD_GET_INTERPOLATION', 1)
+cdata.set('HAVE_GD_PNG_GET_VERSION_STRING', 1)
+gd_formats = {
+    'HAVE_GD_PNG': [dep_libpng],
+    'HAVE_LIBPNG': [dep_libpng],
+    'HAVE_GD_JPG': [dep_libjpeg],
+    'HAVE_LIBJPEG': [dep_libjpeg],
+    'HAVE_GD_WEBP': [dep_libwebp],
+    'HAVE_LIBWEBP': [dep_libwebp],
+    'HAVE_GD_AVIF': [dep_libavif],
+    'HAVE_LIBAVIF': [dep_libavif],
+    'HAVE_GD_XPM': [dep_xpm],
+    'HAVE_LIBXPM': [dep_xpm],
+    'HAVE_XPM': [dep_xpm],
+    'HAVE_GD_FREETYPE': [dep_freetype],
+    'HAVE_LIBFREETYPE': [dep_freetype],
+}
+foreach define, deps : gd_formats
+    cdata.set(define, 1)
+endforeach
+
+# mysqlnd enables SSL and compression when the libraries it can use are present.
+cdata.set('MYSQLND_HAVE_SSL', 1)
+cdata.set('MYSQLND_SSL_SUPPORTED', 1)
+cdata.set('MYSQLND_COMPRESSION_ENABLED', 1)
+
+# libedit always provides history_list, and the KOI8 workaround is what the
+# oniguruma in the platform image needs.
+cdata.set('HAVE_HISTORY_LIST', 1)
+cdata.set('PHP_ONIG_BAD_KOI8_ENTRY', 1)
+
+# Policies that were configure options with these defaults.
+cdata.set('PCRE2_CODE_UNIT_WIDTH', 8)
+cdata.set('HAVE_HUGE_CODE_PAGES', 1)
+cdata.set_quoted('PHP_ICONV_IMPL', 'glibc')
 
 configure_file(
     input : 'php_config.h.in',
