@@ -14,9 +14,13 @@ shell := platform_dir / "shell"
 list:
     just --list
 
+# open an interactive shell in the platform environment
+shell:
+    {{shell}} bash
+
 all: rebuild install test
 
-rebuild: clean configure make
+rebuild: clean configure generate make
 
 configure:
     {{shell}} ./buildconf --force
@@ -43,11 +47,16 @@ configure:
 # extensions built with --disable-all: date hash json lexbor opcache pcre random reflection spl standard uri
 # sapis built by default: cli cgi phpdbg
 
+generate:
+    {{shell}} build/regenerate
+
 make:
     {{shell}} make -j{{nproc}}
 
-test:
-    -{{shell}} make test
+# run the test suite, optionally limited to individual tests or directories:
+#   just test Zend/tests/foo.phpt
+test *TESTS:
+    -{{shell}} make test {{TESTS}}
 
 install: _wipe-install
     {{shell}} make install
@@ -57,7 +66,14 @@ clean:
     rm -rf {{platform_dir}}/config.cache autom4te.cache .libs modules configure actmp.* config.* Makefile Makefile.* libtool
     git status --porcelain --ignored | egrep '^!! (ext|main|sapi|TSRM|Zend|scripts|tests)/' | cut -c3- | xargs rm -rf
 
-meson: _meson-setup _meson-compile _meson-install
+# rebuild the platform's docker image after changing its Dockerfile
+# runs on the host: the image can't be rebuilt from inside itself
+build-image:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{platform_dir}} && docker compose build
+
+meson: generate _meson-setup _meson-compile _meson-install
 
 _meson-setup: _wipe-build
     {{shell}} meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}
