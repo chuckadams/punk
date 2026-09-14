@@ -54,7 +54,6 @@ zend_sources = files(
     'zend_system_id.c',
     'zend_variables.c',
     'zend_virtual_cwd.c',
-    'zend_vm_opcodes.c',
     'zend_weakrefs.c',
     'zend.c',
     'Optimizer/block_pass.c',
@@ -137,18 +136,29 @@ zend_ini_parser_gen = custom_target(
 
 php = find_program('php')
 
-# zend_vm_gen.php writes the four VM files into its own source directory and has
-# no output-directory option, so meson runs it in place, exactly as
-# build/regenerate does, and records a stamp as its build-side output.  The
-# compiler's depfiles then notice the rewritten headers and recompile what
-# changed.  The four files are gitignored (like the re2c/bison outputs), so a
-# clean checkout starts without them and the generator produces them on first
-# build.
+# zend_vm_gen.php writes into its own directory and reads its inputs from there,
+# so gen-zend-vm.sh copies the script and its inputs into the build directory
+# and runs the copy; the four outputs land in the build tree like the re2c and
+# bison outputs.  build/regenerate runs the script in place for autoconf.
+#
+# install_headers/install_data reject custom_target outputs, so the only way to
+# install these is the target's own install kwarg -- which installs every output,
+# including the .c.  The headers have to be installed because zend_compile.h
+# (reached from php.h via zend_modules.h) includes zend_vm_opcodes.h.  The stray
+# .c in the include tree is harmless.
+php_includedir = get_option('includedir')
+if not php_includedir.startswith('/')
+    php_includedir = get_option('prefix') / php_includedir
+endif
+
 zend_vm_gen = custom_target(
     'zend_vm',
     input : ['zend_vm_def.h', 'zend_vm_execute.skl', 'zend_vm_gen.php'],
-    output : 'zend_vm.stamp',
-    command : [find_program('sh'), '-c', 'php "$1" && : > "$2"', 'sh', '@INPUT2@', '@OUTPUT@'],
+    output : ['zend_vm_opcodes.h', 'zend_vm_opcodes.c', 'zend_vm_execute.h', 'zend_vm_handlers.h'],
+    command : [find_program('sh'), files('../build/gen-zend-vm.sh'),
+               meson.project_source_root() / 'Zend', '@OUTDIR@'],
+    install : true,
+    install_dir : php_includedir / 'php/Zend',
 )
 
 zend_objs = static_library(
@@ -158,7 +168,7 @@ zend_objs = static_library(
     zend_ini_scanner_gen[0],
     zend_language_parser_gen[0],
     zend_language_scanner_gen[0],
-    zend_vm_gen[0],
+    zend_vm_gen[1],
     c_args : static_c_args,
     include_directories : [includes],
     build_by_default : false,
@@ -257,9 +267,10 @@ install_headers(
     'zend_virtual_cwd.h',
     'zend_vm.h',
     'zend_vm_def.h',
-    'zend_vm_execute.h',
-    'zend_vm_handlers.h',
-    'zend_vm_opcodes.h',
+    # zend_vm_execute.h, zend_vm_handlers.h and zend_vm_opcodes.h are generated
+    # in the build directory and installed by the zend_vm custom_target above
+    # (install_headers rejects custom_target outputs, so they cannot be listed
+    # here).
     'zend_vm_trace_handlers.h',
     'zend_vm_trace_lines.h',
     'zend_vm_trace_map.h',
