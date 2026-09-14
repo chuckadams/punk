@@ -4,12 +4,12 @@ Goal: `php_config.h` and every other configure output come from meson, every m4
 file is deleted, and logic that lived in m4 moves to meson or to support scripts
 in bash/python.
 
-Status: **phases 1-4 done — `just compare-config` reports no differences.**  The
-meson-generated header reproduces autoconf's symbol for symbol (445 defined here
-against 449 there, the difference being five deliberate omissions recorded in the
-comparison tool), so what is left is the other generated files (phase 5) and the
-switch-over plus deletion (phase 6).  Five artifacts are still borrowed from
-autoconf; they are the finish line.
+Status: **phases 1-5 done.**  Meson generates the config header (`just
+compare-config` reports no differences; 445 symbols here against autoconf's 449,
+the difference being five deliberate omissions the comparison tool records) and
+four of the five other artifacts autoconf used to produce.  What is left is
+`scripts/php-config` and the man pages, then the switch-over and the deletion
+(phase 6).
 
 ## Where configuration belongs in meson
 
@@ -230,13 +230,35 @@ Measured after phase 3: autoconf 449 defined, meson 429.
 
 Measured after phase 4: **no differences**.  The gate is green.
 
+**Phase 5 — the remaining generated files.** Done:
+- `Zend/zend_config.h` is generated from a tracked `Zend/zend_config.h.in`; being
+  a build-directory file is what makes its relative include resolve to the
+  build's `php_config.h` rather than the source tree's.
+- `main/internal_functions_cli.c` is generated from the existing
+  `internal_functions.c.in` with two explicit lists (the includes and the module
+  pointers).  Both orders matter -- the include order follows the extension list,
+  the pointer order is the registration order that `build/order_by_dep.awk`
+  sorted by dependency -- so they are recorded rather than derived, and the result
+  is byte-identical to what autoconf's `genif.sh` produced.  The CLI and CGI
+  front-ends share one file, since they link the same extensions; autoconf's
+  second variant existed for SAPIs with a different built-in set.
+- `ext/date/lib/timelib_config.h` and `ext/mbstring/libmbfl/config.h` were
+  heredocs in their `config.m4` files and are now templates in those directories,
+  generated into the matching build directory so the sources find them the same
+  way.  `ext/date` gained `lib/` on its include path and both extensions install
+  the generated file rather than the source-tree one.
+
+Verified: the generated `internal_functions_cli.c` is byte-identical to
+autoconf's, and the extension/date/mbstring test directories pass against a build
+that now compiles meson's copy of it (7008 passing, 0 failing).
+
 **Phase 4 — runtime and struct probes.** Per-platform answer table for the 36
 `AC_RUN_IFELSE` checks, `cc.has_member` for the struct details, `cc.compiles` for
 the compiler capabilities. Exit: `just compare-config` prints no differences.
 
-**Phase 5 — the remaining generated files.** `Zend/zend_config.h`,
-`internal_functions*.c` (from `punk_frontend_*`, no script needed),
-`timelib_config.h`, `libmbfl/config.h`, `php-config`, man pages.
+**Phase 5 tail — `scripts/php-config` and the man pages.** `php-config.in` wants
+the version, the install paths, the SAPI list and the link flags, all of which
+meson has; the man pages are plain substitutions.  Neither blocks the switch-over.
 
 **Phase 6 — switch over and delete.** Move the header generation to
 `main/meson.build` (so `<build>/main/php_config.h` shadows the source tree),

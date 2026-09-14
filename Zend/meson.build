@@ -92,6 +92,15 @@ zend_sources = files(
     #    'zend_max_execution_timer.c',
 )
 
+# zend_config.h used to be an AC_CONFIG_COMMANDS heredoc; it is a one-line shim,
+# and generating it into the build directory is what makes its relative include
+# resolve to the build's php_config.h.
+configure_file(
+    input : 'zend_config.h.in',
+    output : 'zend_config.h',
+    copy : true,
+)
+
 zend_objs = static_library(
     'zend_objs',
     zend_sources,

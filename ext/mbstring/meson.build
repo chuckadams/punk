@@ -41,6 +41,8 @@ ext_mbstring_sources = files(
   'php_unicode.c',
 )
 
+subdir('libmbfl')
+
 shared_module(
     'mbstring',
     [ext_mbstring_sources],
@@ -61,7 +63,7 @@ install_headers(
 
 
 install_headers(
-  'libmbfl/config.h',
+  libmbfl_config_h,
   subdir: 'ext/mbstring/libmbfl',
 )
 

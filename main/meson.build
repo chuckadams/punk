@@ -4,7 +4,6 @@ main_sources = files(
     'fastcgi.c',
     'fopen_wrappers.c',
     'getopt.c',
-    'internal_functions_cli.c',
     'main.c',
     'network.c',
     'output.c',
@@ -52,6 +51,67 @@ main_sources = files(
     'streams/userspace.c',
     'streams/xp_socket.c',
 )
+
+# internal_functions_cli.c lists the extensions linked into the front-ends.  Both
+# orders matter: the include order follows the extension list and the module
+# pointer order is the registration order, which build/order_by_dep.awk sorted by
+# the extensions' dependencies (mysqlnd before mysqli, and so on).  They are
+# recorded here rather than derived, so adding a statically linked extension means
+# adding it to cli_static_extensions in the root meson.build and to both lists
+# below.
+internal_functions_includes = [
+    '#include "ext/date/php_date.h"',
+    '#include "ext/libxml/php_libxml.h"',
+    '#include "ext/pcre/php_pcre.h"',
+    '#include "ext/hash/php_hash.h"',
+    '#include "ext/intl/php_intl.h"',
+    '#include "ext/json/php_json.h"',
+    '#include "ext/lexbor/php_lexbor.h"',
+    '#include "ext/mysqli/php_mysqli.h"',
+    '#include "ext/opcache/zend_accelerator_module.h"',
+    '#include "ext/random/php_random.h"',
+    '#include "ext/readline/php_readline.h"',
+    '#include "ext/reflection/php_reflection.h"',
+    '#include "ext/spl/php_spl.h"',
+    '#include "ext/standard/php_standard.h"',
+    '#include "ext/uri/php_uri.h"',
+    '#include "ext/mysqlnd/php_mysqlnd.h"',
+]
+
+internal_functions_ptrs = [
+    '\tphpext_date_ptr,',
+    '\tphpext_libxml_ptr,',
+    '\tphpext_pcre_ptr,',
+    '\tphpext_hash_ptr,',
+    '\tphpext_intl_ptr,',
+    '\tphpext_json_ptr,',
+    '\tphpext_lexbor_ptr,',
+    '\tphpext_mysqlnd_ptr,',
+    '\tphpext_standard_ptr,',
+    '\tphpext_spl_ptr,',
+    '\tphpext_mysqli_ptr,',
+    '\tphpext_opcache_ptr,',
+    '\tphpext_random_ptr,',
+    '\tphpext_readline_ptr,',
+    '\tphpext_reflection_ptr,',
+    '\tphpext_uri_ptr,',
+]
+
+internal_functions_defs = configuration_data()
+internal_functions_defs.set('EXT_INCLUDE_CODE', '\n'.join(internal_functions_includes) + '\n')
+internal_functions_defs.set('EXT_MODULE_PTRS', '\n'.join(internal_functions_ptrs) + '\n')
+internal_functions_defs.set('NEWLINE', '\n')
+
+# The CLI and CGI front-ends link the same extensions, so one generated file
+# serves both; autoconf's other variant (main/internal_functions.c) existed for
+# SAPIs with a different built-in set.
+internal_functions_cli_c = configure_file(
+    input : 'internal_functions.c.in',
+    output : 'internal_functions_cli.c',
+    configuration : internal_functions_defs,
+)
+
+main_sources += internal_functions_cli_c
 
 main_objs = static_library(
     'main_objs',
