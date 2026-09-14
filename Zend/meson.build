@@ -137,13 +137,13 @@ zend_ini_parser_gen = custom_target(
 
 php = find_program('php')
 
-# zend_vm_gen.php writes the four VM files into its own source directory, and
-# those files are committed -- upstream regenerates them constantly, so
-# un-committing them to generate into the build tree would make every upstream
-# merge fight the deletion.  meson runs the script in place, exactly as
-# build/regenerate does, and records a stamp as its build-side output; the
+# zend_vm_gen.php writes the four VM files into its own source directory and has
+# no output-directory option, so meson runs it in place, exactly as
+# build/regenerate does, and records a stamp as its build-side output.  The
 # compiler's depfiles then notice the rewritten headers and recompile what
-# changed.
+# changed.  The four files are gitignored (like the re2c/bison outputs), so a
+# clean checkout starts without them and the generator produces them on first
+# build.
 zend_vm_gen = custom_target(
     'zend_vm',
     input : ['zend_vm_def.h', 'zend_vm_execute.skl', 'zend_vm_gen.php'],
