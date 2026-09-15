@@ -46,8 +46,9 @@ compile, the `.phpt` suite, install, then the phpize gate — and `just meson-re
 without wiping or installing.
 
 The autoconf build is gone: no `configure.ac`, no `buildconf`, no tree-side `build/*.m4`, no `Makefile.global`
-driving anything here, and no `platform/*/configure`. What survives of the m4 stack is the payload phpize
-ships to third-party extension authors — see "phpize and third-party extensions" below.
+driving anything here, and no `platform/_common/configure-cli` (the per-platform `configure` wrapper that
+sourced it went with it). What survives of the m4 stack is the payload phpize ships to third-party extension
+authors — see "phpize and third-party extensions" below.
 
 ```sh
 PLATFORM=aarch64-linux-gnu just _meson-setup    # meson configuration (owns the build dir)
