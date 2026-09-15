@@ -148,7 +148,17 @@ phpize_copy_files()
 {
   test -d build || mkdir build
 
-  (cd "$phpdir" && cp $FILES_BUILD "$builddir"/build)
+  # gen_stub.php needs PhpParser and downloads it from GitHub when it is not
+  # beside itself, which would make an out-of-tree extension with a .stub.php
+  # need the network at build time.  The install ships the pinned version in the
+  # build directory, so copy it along.  Globbing rather than naming a version
+  # keeps the pin in one place -- gen_stub.php's own $version.
+  parser_dirs=
+  for parser_dir in "$phpdir"/PHP-Parser-*; do
+    test -d "$parser_dir" && parser_dirs="$parser_dirs $(basename "$parser_dir")"
+  done
+
+  (cd "$phpdir" && cp -R $FILES_BUILD $parser_dirs "$builddir"/build)
   (cd "$phpdir" && cp $FILES "$builddir")
 }
 

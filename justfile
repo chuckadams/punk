@@ -105,12 +105,18 @@ check-modules:
 check-install:
     {{shell}} scripts/dev/check-install {{prefix}}
 
+# prove the installed phpize and the payload it copies still build a third-party
+# extension the autoconf way.  Skipped, not failed, where autoconf/make are
+# absent -- punk's own build must not need them.
+check-phpize:
+    {{shell}} scripts/dev/check-phpize {{prefix}}
+
 # how much of autoconf's config header meson reproduces yet; exits non-zero
 # while the two differ, so it can gate the switch to meson's header
 compare-config:
     {{shell}} scripts/dev/compare-config-headers main/php_config.h {{meson_build_dir}}/main/php_config.h
 
-meson: _meson-setup _meson-compile _meson-test _meson-install
+meson: _meson-setup _meson-compile _meson-test _meson-install check-phpize
 
 # rebuild in place -- no wipe, no install
 meson-rebuild: _meson-compile

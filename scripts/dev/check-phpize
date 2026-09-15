@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+# Check that phpize, and the build payload it copies out of the install, still
+# build a third-party extension the autoconf way -- the one contract the meson
+# port keeps rather than replaces.
+#
+#   just check-phpize
+#
+# Nothing in the meson build reads the payload, so nothing there would notice if
+# it rotted; this is the gate that does.  It builds a throwaway extension whose
+# config.m4 has the ordinary shape, phpize's it against the install, configures
+# and makes it, loads the module into the installed binary, and runs the
+# extension's own test through the copied run-tests.php.
+#
+# It needs autoconf, autoheader and make, which an extension author needs too.
+# When they are missing the check is *skipped*, not failed: punk's own build
+# must not depend on autoconf, which is the whole point of shipping a payload
+# instead of the toolchain.
+#
+# Usage: check-phpize [PREFIX]     (default: /opt/punk)
+
+set -euo pipefail
+
+prefix=${1:-/opt/punk}
+
+phpize=$prefix/bin/phpize
+php_config=$prefix/bin/php-config
+punk=$prefix/bin/punk
+
+fail() { printf 'check-phpize: %s\n' "$*" >&2; exit 1; }
+ok() { printf '  ok  %s\n' "$*"; }
+skip() { printf 'check-phpize: skipped: %s\n' "$*" >&2; exit 0; }
+
+[ -x "$phpize" ] || fail "$phpize is missing -- install first (just meson)"
+[ -x "$php_config" ] || fail "$php_config is missing -- install first (just meson)"
+[ -x "$punk" ] || fail "$punk is missing -- install first (just meson)"
+
+autoconf=${PHP_AUTOCONF:-autoconf}
+autoheader=${PHP_AUTOHEADER:-autoheader}
+make=${MAKE:-make}
+for tool in "$autoconf" "$autoheader" "$make"; do
+    command -v "$tool" >/dev/null 2>&1 || skip "$tool is not on PATH"
+done
+
+# phpize derives the payload directory from php-config's libdir, so ask the
+# install rather than assuming $prefix/lib.
+libdir=$("$php_config" --extension-dir)
+payload=$libdir/build
+
+echo "checking the installed build payload"
+# The manifest scripts/meson.build installs: everything phpize copies, reads or
+# executes while preparing an extension.
+for f in phpize.m4 php.m4 libtool.m4 ltmain.sh ltoptions.m4 ltsugar.m4 \
+         ltversion.m4 'lt~obsolete.m4' ax_check_compile_flag.m4 \
+         ax_gcc_func_attribute.m4 php_cxx_compile_stdcxx.m4 pkg.m4 \
+         Makefile.global gen_stub.php shtool config.guess config.sub \
+         run-tests.php PHP-Parser-5.6.1/lib/PhpParser/ParserFactory.php; do
+    [ -e "$payload/$f" ] || fail "$payload/$f is missing"
+done
+[ -x "$payload/shtool" ] || fail "$payload/shtool is not executable"
+ok "the payload is installed"
+
+echo "building a third-party extension with phpize"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+ext=$work/punk_phpize_test
+mkdir -p "$ext/tests"
+cd "$ext"
+
+cat > config.m4 <<'EOF'
+dnl A config.m4 of the ordinary shape: one option, one define, one module.
+PHP_ARG_ENABLE([punk_phpize_test],
+  [whether to enable punk_phpize_test support],
+  [AS_HELP_STRING([--enable-punk-phpize-test],
+    [Enable punk_phpize_test support])],
+  [no])
+
+if test "$PHP_PUNK_PHPIZE_TEST" != "no"; then
+  AC_DEFINE([HAVE_PUNK_PHPIZE_TEST], [1],
+    [Define to 1 if the punk_phpize_test extension is available.])
+  PHP_NEW_EXTENSION([punk_phpize_test], [punk_phpize_test.c], [$ext_shared])
+fi
+EOF
+
+cat > punk_phpize_test.c <<'EOF'
+#ifdef HAVE_CONFIG_H
+/* Which is where PHP_NEW_EXTENSION's COMPILE_DL_* define landed, and the
+   reason the module exports get_module at all. */
+# include "config.h"
+#endif
+
+#include "php.h"
+
+#ifndef HAVE_PUNK_PHPIZE_TEST
+# error "config.m4's AC_DEFINE did not make it into config.h"
+#endif
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_punk_phpize_test_hello, 0, 0, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(punk_phpize_test_hello)
+{
+    RETURN_STRING("hello from phpize");
+}
+
+static const zend_function_entry punk_phpize_test_functions[] = {
+    PHP_FE(punk_phpize_test_hello, arginfo_punk_phpize_test_hello)
+    PHP_FE_END
+};
+
+zend_module_entry punk_phpize_test_module_entry = {
+    STANDARD_MODULE_HEADER,
+    "punk_phpize_test",
+    punk_phpize_test_functions,
+    NULL, NULL, NULL, NULL, NULL,
+    "0.1",
+    STANDARD_MODULE_PROPERTIES
+};
+
+#ifdef COMPILE_DL_PUNK_PHPIZE_TEST
+# ifdef ZTS
+ZEND_TSRMLS_CACHE_DEFINE()
+# endif
+ZEND_GET_MODULE(punk_phpize_test)
+#endif
+EOF
+
+cat > tests/001-hello.phpt <<'EOF'
+--TEST--
+punk_phpize_test: a module built by phpize
+--FILE--
+<?php
+echo punk_phpize_test_hello(), "\n";
+?>
+--EXPECT--
+hello from phpize
+EOF
+
+# Each step is noisy and only interesting when it fails, so keep its output and
+# print it on the way out.
+step() {
+    label=$1
+    shift
+    if ! "$@" >"$work/$label.log" 2>&1; then
+        printf 'check-phpize: %s failed\n' "$label" >&2
+        sed 's/^/    /' "$work/$label.log" >&2
+        exit 1
+    fi
+}
+
+step phpize "$phpize"
+[ -f configure ] || fail "phpize produced no configure script"
+[ -f config.h.in ] || fail "autoheader produced no config.h.in"
+# The vendored parser has to land beside the gen_stub.php copy too: phpize copies
+# a named file list, and a parser left behind in the payload would send the
+# arginfo rule to the network, which is the whole reason it is shipped.
+[ -f build/PHP-Parser-5.6.1/lib/PhpParser/ParserFactory.php ] \
+    || fail "phpize did not copy the vendored PhpParser into build/"
+ok "phpize ran autoconf and autoheader"
+
+# And that the copy is usable: gen_stub.php is what the generated Makefile's
+# %.stub.php rule runs, and it either finds PhpParser beside itself or downloads
+# it from GitHub.
+#
+# It needs the tokenizer extension, which punk builds shared, so point the CLI at
+# the install's module directory; where tokenizer is built in the -d is simply
+# redundant, and where it is absent gen_stub.php could not run for an extension
+# author either.
+tokenizer=""
+if [ -e "$libdir/tokenizer.so" ]; then
+    tokenizer="-d extension=tokenizer"
+fi
+
+cat > punk_phpize_test.stub.php <<'EOF'
+<?php
+
+function punk_phpize_test_stub(): string {}
+EOF
+# shellcheck disable=SC2086
+step stub "$punk" -n -d "extension_dir=$libdir" $tokenizer \
+    build/gen_stub.php punk_phpize_test.stub.php
+[ -f punk_phpize_test_arginfo.h ] \
+    || fail "gen_stub.php produced no arginfo header"
+ok "gen_stub.php generates arginfo from the copied PhpParser"
+
+step configure ./configure --with-php-config="$php_config"
+[ -f Makefile ] || fail "configure produced no Makefile"
+ok "the extension configured against the install"
+
+step make "$make"
+module=$(find modules -maxdepth 1 -type f \
+    \( -name 'punk_phpize_test.so' -o -name 'punk_phpize_test.dylib' \) | head -1)
+[ -n "$module" ] || fail "make produced no module in modules/"
+ok "make produced $(basename "$module")"
+
+out=$("$punk" -n -d "extension=$module" -r 'echo punk_phpize_test_hello(), "\n";')
+[ "$out" = "hello from phpize" ] || fail "the module loaded but returned '$out'"
+ok "the installed binary loads the module"
+
+step test "$make" test
+# `step` above already proved run-tests exited zero, so this only has to rule
+# out a run of zero tests: make test would exit 0 for that too.  Match the test
+# file, not the PASS line -- run-tests colours the verdict word and writes an
+# escape between it and the name.
+if ! grep -q 'tests/001-hello.phpt' "$work/test.log"; then
+    printf "check-phpize: make test did not run the extension's test\n" >&2
+    sed 's/^/    /' "$work/test.log" >&2
+    exit 1
+fi
+ok "the extension's own test passes under the copied run-tests.php"
+
+echo "phpize builds third-party extensions against this install"

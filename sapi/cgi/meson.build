@@ -22,7 +22,9 @@ sapi_cgi_exe = executable(
     install : true,
 )
 
-# The one man page punk ships.  php.1 documents a binary named php and phpize.1 a
-# tool punk does not carry; phar's pages describe a CLI this install does not
-# include.  The template has no substitutions, so this is a copy.
+# One of punk's three man pages: phpize.1 and php-config.1 come from
+# scripts/meson.build, which configures them from templates.  This one has no
+# substitutions, so it is a copy.  Upstream's php.1 is not installed -- it
+# documents a binary this fork does not ship under that name -- and neither are
+# phar's, which describe a CLI the install does not include.
 install_man(configure_file(input : 'php-cgi.1.in', output : 'php-cgi.1', copy : true))

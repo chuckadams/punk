@@ -73,3 +73,93 @@ php_config = configure_file(
 )
 
 install_data(php_config, install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+
+# ---------------------------------------------------------------------------
+# phpize, and the build payload it copies into third-party extensions
+# ---------------------------------------------------------------------------
+#
+# phpize is kept, and kept by shipping the autoconf machinery it needs rather
+# than by replacing it: it copies these files into an extension and runs
+# autoconf on the config.m4 it finds there.  The manifest is the one
+# scripts/Makefile.frag's install-build used, and the destination has to be what
+# phpize.in looks for -- it derives phpdir from @libdir@, so the payload lands
+# in $prefix/lib/build.
+#
+# None of it is a build input of *this* tree any more; it is only ever executed
+# by an extension author, which is why scripts/dev/check-phpize exists to prove
+# it still works.
+
+phpize_substitutions = configuration_data()
+phpize_substitutions.set('prefix', prefix)
+phpize_substitutions.set('exec_prefix', prefix)
+phpize_substitutions.set('datarootdir', prefix / 'share')
+phpize_substitutions.set('libdir', libdir)
+phpize_substitutions.set('includedir', includedir)
+phpize_substitutions.set('SED', find_program('sed').full_path())
+
+phpize = configure_file(
+    input : 'phpize.in',
+    output : 'phpize',
+    configuration : phpize_substitutions,
+)
+
+install_data(phpize, install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+
+# The two man pages were AC_CONFIG_FILES upstream and need the same two values
+# php-config does, so they are configured from that object rather than from a
+# second copy of them that could drift.
+install_man(configure_file(
+    input : 'man1/phpize.1.in',
+    output : 'phpize.1',
+    configuration : php_config_substitutions,
+))
+
+install_man(configure_file(
+    input : 'man1/php-config.1.in',
+    output : 'php-config.1',
+    configuration : php_config_substitutions,
+))
+
+phpize_payload_dir = libdir / 'build'
+
+# php.m4 and the libtool/ax/pkg macro files are what the extension's config.m4
+# is expanded against.  ltmain.sh is what generates its libtool, Makefile.global
+# is the skeleton PHP_GEN_GLOBAL_MAKEFILE assembles its Makefile from, shtool is
+# used both at configure time ($php_shtool) and from the generated Makefile, and
+# run-tests.php is what makes `make test` work in the extension.
+phpize_payload = files(
+    'phpize.m4',
+    '../run-tests.php',
+    '../build/php.m4',
+    '../build/libtool.m4',
+    '../build/ltmain.sh',
+    '../build/ltoptions.m4',
+    '../build/ltsugar.m4',
+    '../build/ltversion.m4',
+    '../build/lt~obsolete.m4',
+    '../build/ax_check_compile_flag.m4',
+    '../build/ax_gcc_func_attribute.m4',
+    '../build/php_cxx_compile_stdcxx.m4',
+    '../build/pkg.m4',
+    '../build/Makefile.global',
+    '../build/gen_stub.php',
+)
+
+install_data(phpize_payload, install_dir : phpize_payload_dir)
+
+# These three are executed -- by the extension's configure (config.guess and
+# config.sub through libtool) and by both configure and make (shtool) -- so they
+# need the executable bit that install_data does not set by default.  phpize
+# chmods shtool itself, but the same call gets all three right the first time.
+install_data(files(
+    '../build/shtool',
+    '../build/config.guess',
+    '../build/config.sub',
+), install_dir : phpize_payload_dir, install_mode : 'rwxr-xr-x')
+
+# gen_stub.php needs PhpParser, and downloads it from GitHub when it is not
+# beside itself -- so an out-of-tree extension with a .stub.php would need the
+# network at build time.  Vendoring the pinned version next to the copy of
+# gen_stub.php above is what makes that rule work offline.  The version is
+# pinned in gen_stub.php itself, so bumping PHP-Parser means bumping both.
+install_subdir('../build/PHP-Parser-5.6.1', install_dir : phpize_payload_dir)
