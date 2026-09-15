@@ -10,3 +10,13 @@ option('zts', type : 'boolean', value : true, description : 'Build thread-safe (
 option('zend-debug', type : 'boolean', value : true, description : 'Build with ZEND_DEBUG')
 option('sigchild', type : 'boolean', value : true, description : 'Enable the sigchild handling')
 option('fiber-asm', type : 'boolean', value : false, description : 'Use assembly fibers instead of ucontext')
+
+# The Clang fuzzing SAPI (--enable-fuzzer).  It is off because it cannot share a
+# configuration with the rest of the tree, so it wants a build directory of its
+# own:
+#
+#   meson setup -Dfuzzer=true -Dzts=false -Db_sanitize=address <dir>
+#
+# sapi/fuzzer/meson.build explains what each of those is for, and `just fuzzer`
+# is the recipe that runs it.
+option('fuzzer', type : 'boolean', value : false, description : 'Build the Clang fuzzing SAPI and its fuzzer binaries')

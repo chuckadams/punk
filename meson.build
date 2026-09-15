@@ -35,6 +35,31 @@ cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language : 'c')
 add_project_arguments(['-DPUNK', '-DPUNK_MESON'], language : ['c', 'cpp'])
 
+# The fuzzing SAPI needs every object in the build to carry libFuzzer's coverage
+# instrumentation -- that feedback is the whole mechanism -- which config.m4
+# expressed by appending this to CFLAGS and CXXFLAGS before anything was
+# compiled.  It is a project argument for the same reason, and it is why the
+# fuzzer needs a build directory of its own (see sapi/fuzzer/meson.build).
+#
+# meson suggests -Db_sanitize for anything that looks like a sanitizer flag.  It
+# would work here, but only if every caller remembered to pass it, and a build
+# that quietly forgot it would still link: libFuzzer supplies the coverage
+# runtime, so the fuzzers would run with no feedback at all.  Adding it here
+# cannot be forgotten, and the sanitizer that runtime comes from is asked for
+# below rather than assumed.
+if get_option('fuzzer')
+    add_project_arguments('-fsanitize=fuzzer-no-link', language : ['c', 'cpp'])
+    # -fsanitize=fuzzer-no-link instruments but links nothing, so the coverage
+    # runtime has to come from a real sanitizer at link time.  Without one every
+    # binary fails on undefined __sanitizer_cov_* symbols, so say so here instead
+    # of a thousand compilations from now.  (meson reports an unset b_sanitize as
+    # 'none', which is the same answer as setting it explicitly.)
+    if get_option('b_sanitize') == 'none'
+        error('the fuzzer build needs a sanitizer for libFuzzer\'s coverage runtime: ' +
+              'configure with -Db_sanitize=address (or undefined, or memory)')
+    endif
+endif
+
 # Extensions compiled straight into the punk binary; see sapi/cli/meson.build,
 # which lists their sources. Building them as loadable modules as well would
 # produce .so files without a module entry point, because a static build never
@@ -312,9 +337,14 @@ subdir('scripts')
 # sapi/embed reuses sapi/cli's shared sources and its generated arginfo, so it
 # has to come after it.  sapi/fpm and sapi/phpdbg reuse nothing from the other
 # front-ends -- each has its own main() -- but come last for the same reason the
-# others do: they need punk_frontend_* from above.
+# others do: they need punk_frontend_* from above.  sapi/fuzzer needs the same
+# and is conditional, because it is not a front-end punk ships but a target set
+# with a configuration of its own (see the file).
 subdir('sapi/cli')
 subdir('sapi/cgi')
 subdir('sapi/embed')
 subdir('sapi/fpm')
 subdir('sapi/phpdbg')
+if get_option('fuzzer')
+    subdir('sapi/fuzzer')
+endif

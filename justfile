@@ -5,6 +5,13 @@
 prefix := env('PUNK_INSTALL_PREFIX', '/opt/punk')
 export PUNK_INSTALL_PREFIX := prefix
 
+# Which sanitizers the fuzzer build links against, passed to meson as
+# b_sanitize.  Override it the same way (`just fuzz_sanitize=undefined fuzzer`);
+# -fsanitize=fuzzer-no-link is added on top by the build itself, so this is only
+# the part that finds bugs.  address is the one the README leads with and the
+# fastest; address,undefined catches more.
+fuzz_sanitize := env('PUNK_FUZZ_SANITIZE', 'address')
+
 nproc := env('NPROC', num_cpus())
 platform := env('PLATFORM')
 sapi := env('BUILD_SAPI', 'cli')
@@ -13,6 +20,10 @@ sapi := env('BUILD_SAPI', 'cli')
 # platform_dir := justfile_directory() / 'platform' / platform
 platform_dir := 'platform' / platform
 meson_build_dir := platform_dir / '.meson-build'
+# The fuzzer cannot share a configuration with the build above -- it is not ZTS,
+# everything in it is instrumented, and it links the core statically -- so it
+# gets a build directory of its own (sapi/fuzzer/meson.build has the details).
+fuzzer_build_dir := platform_dir / '.meson-build-fuzzer'
 
 shell := platform_dir / "shell"
 
@@ -37,7 +48,8 @@ configure:
 # * support odbc (it builds, but fails many tests)
 # * support pdo_dblib (it builds, but its tests crash the whole test suite)
 # * mysqli and mysqlnd both fail to load when built as shared.  fix this.
-# * fuzzer sapi
+# * an option for which extensions are static, so the fuzzer build can be
+#   --disable-all-like and the exif/mbstring/mbregex fuzzers can link
 # * gcov, valgrind support
 
 # things punk will never support
@@ -104,7 +116,7 @@ meson: _meson-setup _meson-compile _meson-test _meson-install
 meson-rebuild: _meson-compile
 
 # not the .phpt suite -- that is `just _meson-test` / `just test-installed`
-# run meson's own test() targets: the CLI smoke test and the embed host test
+# run meson's own test() targets: one smoke test per front-end
 unit-test:
     {{shell}} meson test -C {{meson_build_dir}} --print-errorlogs
 
@@ -113,6 +125,22 @@ _meson-setup: _wipe-build
 
 _meson-compile:
     {{shell}} meson compile -C {{meson_build_dir}}
+
+# the fuzzer's build directory is separate from the main one (see
+# fuzzer_build_dir above), and nothing is installed or tested
+# build the Clang fuzzing SAPI and its fuzzers
+fuzzer: _fuzzer-setup _fuzzer-compile
+
+# the sanitizers are fuzz_sanitize's; the rest is what the fuzzer needs and the
+# normal build cannot have.  The prefix is only here so that a stray
+# `meson install` cannot land an instrumented tree on top of the real one.
+_fuzzer-setup: _wipe-fuzzer-build
+    {{shell}} meson setup -Dfuzzer=true -Dzts=false -Db_sanitize={{fuzz_sanitize}} --prefix {{prefix}}/fuzzer {{fuzzer_build_dir}}
+
+# the 'fuzzer' alias target, so this builds the fuzzers rather than the whole
+# build directory -- which also describes the front-ends and the modules
+_fuzzer-compile:
+    {{shell}} meson compile -C {{fuzzer_build_dir}} fuzzer
 
 # test the binaries in the build directory, without installing them first:
 #   just _meson-test Zend/tests
@@ -126,6 +154,9 @@ _meson-install: _wipe-install
 
 _wipe-build:
     rm -rf {{meson_build_dir}}
+
+_wipe-fuzzer-build:
+    rm -rf {{fuzzer_build_dir}}
 
 # the prefix lives inside the container / platform environment, so this has to
 # run through the platform shell rather than on the host
