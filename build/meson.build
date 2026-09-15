@@ -495,9 +495,17 @@ php_config_defs.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
 
 # Adjudicate before the switch: meson's checks find clearenv, clock_gettime,
 # ptrace, times, tzname and the tzname declaration, while autoconf left all six
-# undefined.  PHP changes behaviour when they are defined (hrtime switches to
-# clock_gettime, putenv to clearenv), so they are left out until someone decides
-# which answer is right rather than silently changing how punk behaves.
+# undefined in the configuration punk has always been built with.  PHP changes
+# behaviour when they are defined (hrtime switches to clock_gettime), so they are
+# left out until someone decides which answer is right rather than silently
+# changing how punk behaves.
+#
+# The FPM section at the end of this file revisits the three whose only consumer
+# is sapi/fpm -- clearenv, ptrace and times -- because building FPM asks questions
+# the reference configuration never asked, and one of them (clearenv) does not
+# even compile when left to the fallback.  clock_gettime stays out: it is engine
+# behaviour, and nothing else here reads it.  HAVE_TZNAME and HAVE_DECL_TZNAME
+# stay out too -- nothing in the tree reads either.
 
 # Declarations have to be defined to 0 when absent -- leaving them undefined is
 # not the same as "not declared" for the code that uses these.
@@ -1099,6 +1107,232 @@ endif
 # what the absent --with-external-libcrypt means; it becomes an option when
 # somebody wants the external one.
 php_config_defs.set('PHP_USE_PHP_CRYPT_R', 1)
+
+# ---- FPM -------------------------------------------------------------------
+# sapi/fpm's configuration checks (config.m4's PHP_FPM_TRACE, _BUILTIN_ATOMIC and
+# _LQ).  Every symbol here is read only by sapi/fpm, which is why answering it
+# does not fall under the adjudication above: it cannot change how the CLI
+# behaves.  Two exceptions are deliberately absent rather than overlooked:
+# HAVE_SETPFLAGS, because it needs illumos' priv.h and no punk target has one,
+# and HAVE_CLOCK_GET_TIME, because FPM's clock only looks for it when
+# HAVE_CLOCK_GETTIME is missing, and that one is engine behaviour
+# (Zend/zend_hrtime.h) and stays out.  FPM's clock therefore falls back to
+# gettimeofday, the branch a build without clock_gettime takes.
+
+# FPM's slowlog trace reads another process's memory.  fpm_config.h turns
+# whichever of ptrace / /proc/<pid>/mem / mach_vm_read works into HAVE_FPM_TRACE,
+# and config.m4 prefers them in that order, so the probes run in that order too.
+# ptrace is asked the way config.m4 asks it -- compile, then run -- because a
+# 32-bit ptrace() reading 64-bit longs only fails at run time; the PT_* aliases
+# are the ones fpm_trace_ptrace.c itself defines, so the probe compiles exactly
+# what the backend will.  A cross build cannot run the program and config.m4's
+# answer in that case is "yes", so the compile result stands alone there.
+fpm_ptrace_probe = '''
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/ptrace.h>
+#include <errno.h>
+
+#if !defined(PTRACE_ATTACH) && defined(PT_ATTACH)
+# define PTRACE_ATTACH PT_ATTACH
+#endif
+
+#if !defined(PTRACE_DETACH) && defined(PT_DETACH)
+# define PTRACE_DETACH PT_DETACH
+#endif
+
+#if !defined(PTRACE_PEEKDATA) && defined(PT_READ_D)
+# define PTRACE_PEEKDATA PT_READ_D
+#endif
+
+int main(void)
+{
+    long v1 = (unsigned int) -1;
+    long v2;
+    pid_t child;
+    int status;
+
+    if ((child = fork())) { /* parent */
+        int ret = 0;
+
+        if (0 > ptrace(PTRACE_ATTACH, child, 0, 0)) {
+            return 2;
+        }
+
+        waitpid(child, &status, 0);
+
+#ifdef PT_IO
+        struct ptrace_io_desc ptio = {
+            .piod_op = PIOD_READ_D,
+            .piod_offs = &v1,
+            .piod_addr = &v2,
+            .piod_len = sizeof(v1)
+        };
+
+        if (0 > ptrace(PT_IO, child, (void *) &ptio, 0)) {
+            ret = 3;
+        }
+#else
+        errno = 0;
+
+        v2 = ptrace(PTRACE_PEEKDATA, child, (void *) &v1, 0);
+
+        if (errno) {
+            ret = 4;
+        }
+#endif
+        ptrace(PTRACE_DETACH, child, (void *) 1, 0);
+
+        kill(child, SIGKILL);
+
+        return ret ? ret : (v1 != v2);
+    }
+
+    /* child */
+    sleep(10);
+    return 0;
+}
+'''
+
+if meson.is_cross_build()
+    fpm_have_ptrace = cc.links(fpm_ptrace_probe, args : check_args, name : 'HAVE_PTRACE')
+else
+    fpm_ptrace = cc.run(fpm_ptrace_probe, args : check_args, name : 'HAVE_PTRACE')
+    fpm_have_ptrace = fpm_ptrace.compiled() and fpm_ptrace.returncode() == 0
+endif
+if fpm_have_ptrace
+    php_config_defs.set('HAVE_PTRACE', 1)
+endif
+
+# /proc/<pid>/mem is the backend that needs no ptrace at all.  config.m4 accepts
+# a candidate once a program can actually read its own memory through it, and
+# takes the first that works, "mem" before "as"; the same program runs here with
+# the candidate baked in, rather than asking whether the file merely exists.
+# (The name goes into php_config.h only -- fpm_trace_pread.c substitutes it into
+# its own path.)  A cross build cannot run the program and has no /proc either.
+fpm_proc_mem = ''
+if not meson.is_cross_build()
+    foreach candidate : ['mem', 'as']
+        if fpm_proc_mem == ''
+            fpm_proc_mem_probe = '''
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+#define _FILE_OFFSET_BITS 64
+
+#include <stdint.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+int main(void)
+{
+    long v1 = (unsigned int) -1, v2 = 0;
+    char buf[128];
+    int fd;
+
+    sprintf(buf, "/proc/%d/@MEMFILE@", getpid());
+
+    fd = open(buf, O_RDONLY);
+    if (0 > fd) {
+        return 1;
+    }
+
+    if (sizeof(long) != pread(fd, &v2, sizeof(long), (uintptr_t) &v1)) {
+        close(fd);
+        return 1;
+    }
+
+    close(fd);
+
+    return v1 != v2;
+}
+'''.replace('@MEMFILE@', candidate)
+            fpm_proc_mem_run = cc.run(fpm_proc_mem_probe, args : check_args, name : 'PROC_MEM_FILE (' + candidate + ')')
+            if fpm_proc_mem_run.compiled() and fpm_proc_mem_run.returncode() == 0
+                fpm_proc_mem = candidate
+            endif
+        endif
+    endforeach
+endif
+if fpm_proc_mem != ''
+    php_config_defs.set_quoted('PROC_MEM_FILE', fpm_proc_mem)
+endif
+
+# mach_vm_read is the macOS fallback, and config.m4 only looks for it once ptrace
+# has been ruled out.
+if not fpm_have_ptrace and host_machine.system() == 'darwin'
+    fpm_mach_vm_read_probe = '''
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+
+int main(void)
+{
+    mach_vm_read(
+        (vm_map_t)0,
+        (mach_vm_address_t)0,
+        (mach_vm_size_t)0,
+        (vm_offset_t *)0,
+        (mach_msg_type_number_t*)0);
+
+    return 0;
+}
+'''
+    if cc.links(fpm_mach_vm_read_probe, args : check_args, name : 'HAVE_MACH_VM_READ')
+        php_config_defs.set('HAVE_MACH_VM_READ', 1)
+    endif
+endif
+
+# FPM's scoreboard and log report the CPU times of its workers, which is what
+# config.m4's sys/times.h + times() pair is for.
+if cc.has_header('sys/times.h', args : check_args)
+    if cc.has_function('times', prefix : '#include<sys/times.h>', args : check_args)
+        php_config_defs.set('HAVE_TIMES', 1)
+    endif
+endif
+
+# FPM defines its own clearenv() when the C library has none, and that fallback
+# is an outright conflict with the declaration glibc's stdlib.h already carries.
+# Nothing outside sapi/fpm reads HAVE_CLEARENV, so unlike the clock it is FPM's
+# to answer.
+if cc.has_function('clearenv', prefix : '#include<stdlib.h>', args : check_args)
+    php_config_defs.set('HAVE_CLEARENV', 1)
+endif
+
+# FPM's lock-free shared-memory accounter, which is the compiler's atomic
+# builtins when it has them; fpm_atomic.h falls back to locks otherwise.
+fpm_atomic_probe = '''
+int main(void)
+{
+    int variable = 1;
+
+    return (__sync_bool_compare_and_swap(&variable, 1, 2)
+           && __sync_add_and_fetch(&variable, 1)) ? 1 : 0;
+}
+'''
+if cc.links(fpm_atomic_probe, args : check_args, name : 'HAVE_BUILTIN_ATOMIC')
+    php_config_defs.set('HAVE_BUILTIN_ATOMIC', 1)
+endif
+
+# The listen-queue length in FPM's status page comes from whichever of these the
+# system exposes: Linux reports it in tcp_info, macOS in tcp_connection_info and
+# in the SO_LISTENQ* options.  All three are compile probes because each is a
+# struct or a constant rather than a function.
+fpm_lq_probes = [
+    ['HAVE_LQ_TCP_INFO', '#include<netinet/tcp.h>\nint main(void) { struct tcp_info ti; int x = TCP_INFO; (void) ti; (void) x; return 0; }'],
+    ['HAVE_LQ_TCP_CONNECTION_INFO', '#include<netinet/tcp.h>\nint main(void) { struct tcp_connection_info ti; int x = TCP_CONNECTION_INFO; (void) ti; (void) x; return 0; }'],
+    ['HAVE_LQ_SO_LISTENQ', '#include<sys/socket.h>\nint main(void) { int x = SO_LISTENQLIMIT; int y = SO_LISTENQLEN; (void) x; (void) y; return 0; }'],
+]
+
+foreach probe : fpm_lq_probes
+    if cc.compiles(probe[1], args : check_args, name : probe[0])
+        php_config_defs.set(probe[0], 1)
+    endif
+endforeach
 
 # ---- deliberately not ported ----------------------------------------------
 # LT_OBJDIR, STDC_HEADERS       libtool and pre-C89 leftovers

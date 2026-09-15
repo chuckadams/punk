@@ -3,21 +3,9 @@
 # libraries the front-ends link, which is what an out-of-tree module needs to
 # link against this install.  Note that punk builds no shared PHP library, so
 # --ldflags is empty.
-fs = import('fs')
-
-php_version = ''
-php_version_id = 0
-foreach line : fs.read(meson.project_source_root() / 'main/php_version.h').split('\n')
-    stripped = line.strip()
-    if stripped.startswith('#define PHP_VERSION ')
-        php_version = stripped.replace('#define PHP_VERSION ', '').strip().replace('"', '')
-    elif stripped.startswith('#define PHP_VERSION_ID ')
-        php_version_id = stripped.replace('#define PHP_VERSION_ID ', '').strip().to_int()
-    endif
-endforeach
-if php_version == '' or php_version_id == 0
-    error('could not read PHP_VERSION/PHP_VERSION_ID from main/php_version.h')
-endif
+#
+# php_version/php_version_id come from the root meson.build, which reads them out
+# of main/php_version.h.
 
 prefix = get_option('prefix')
 libdir = get_option('libdir')
@@ -37,43 +25,51 @@ configure_options = [
     '-Dfiber-asm=' + get_option('fiber-asm').to_string(),
 ]
 
-sapis = ['cli', 'cgi']
+# The front-ends this build installs.  Only cli and cgi are special-cased in
+# php-config.in; embed and fpm are here so that --php-sapis answers what the
+# install actually contains, the way autoconf's PHP_INSTALLED_SAPIS does.
+sapis = ['cli', 'cgi', 'embed', 'fpm']
 
-php_config_defs = configuration_data()
-php_config_defs.set('SED', find_program('sed').full_path())
-php_config_defs.set('prefix', prefix)
-php_config_defs.set('exec_prefix', prefix)
-php_config_defs.set('bindir', prefix / 'bin')
-php_config_defs.set('includedir', includedir)
-php_config_defs.set('mandir', prefix / 'share' / 'man')
-php_config_defs.set('datarootdir', prefix / 'share')
-php_config_defs.set('orig_libdir', libdir)
-php_config_defs.set('EXTENSION_DIR', libdir)
-php_config_defs.set('EXPANDED_PHP_CONFIG_FILE_PATH', libdir)
-php_config_defs.set('EXPANDED_PHP_CONFIG_FILE_SCAN_DIR', '')
-php_config_defs.set('PHP_VERSION', php_version)
-php_config_defs.set('PHP_VERSION_ID', php_version_id)
-php_config_defs.set('program_prefix', '')
-php_config_defs.set('program_suffix', '')
-php_config_defs.set('EXEEXT', '')
+# The @name@ substitutions for php-config.in.  Deliberately not called
+# php_config_defs: that name holds the generated C header's configuration_data
+# (created in the root meson.build), and rebinding it here would leave every
+# subdir after this one -- sapi/fpm, which picks its trace backend out of it --
+# reading this object instead.
+php_config_substitutions = configuration_data()
+php_config_substitutions.set('SED', find_program('sed').full_path())
+php_config_substitutions.set('prefix', prefix)
+php_config_substitutions.set('exec_prefix', prefix)
+php_config_substitutions.set('bindir', prefix / 'bin')
+php_config_substitutions.set('includedir', includedir)
+php_config_substitutions.set('mandir', prefix / 'share' / 'man')
+php_config_substitutions.set('datarootdir', prefix / 'share')
+php_config_substitutions.set('orig_libdir', libdir)
+php_config_substitutions.set('EXTENSION_DIR', libdir)
+php_config_substitutions.set('EXPANDED_PHP_CONFIG_FILE_PATH', libdir)
+php_config_substitutions.set('EXPANDED_PHP_CONFIG_FILE_SCAN_DIR', '')
+php_config_substitutions.set('PHP_VERSION', php_version)
+php_config_substitutions.set('PHP_VERSION_ID', php_version_id)
+php_config_substitutions.set('program_prefix', '')
+php_config_substitutions.set('program_suffix', '')
+php_config_substitutions.set('EXEEXT', '')
 # Unlike upstream -- and unlike the autoconf build, which keeps upstream's name --
 # the meson build installs the CLI as "punk", so php-config has to report that.
-php_config_defs.set('PHP_CLI_BINARY_NAME', 'punk')
-php_config_defs.set('PHP_EMBED_TYPE', '')
-php_config_defs.set('SAPI_LIBNAME_SHARED', '')
-php_config_defs.set('SAPI_LIBNAME_STATIC', '')
-php_config_defs.set('PHP_LDFLAGS', '')
-php_config_defs.set('EXTRA_LIBS', ' ' + ' '.join([
+php_config_substitutions.set('PHP_CLI_BINARY_NAME', 'punk')
+php_config_substitutions.set('PHP_EMBED_TYPE', '')
+php_config_substitutions.set('SAPI_LIBNAME_SHARED', '')
+php_config_substitutions.set('SAPI_LIBNAME_STATIC', '')
+php_config_substitutions.set('PHP_LDFLAGS', '')
+php_config_substitutions.set('EXTRA_LIBS', ' ' + ' '.join([
     '-lstdc++', '-lm', '-lpthread', '-lxml2', '-lpcre2-8', '-licui18n',
     '-licuuc', '-licudata', '-ledit', '-largon2', '-lz', '-lssl', '-lcrypto', '-ldl',
 ]))
-php_config_defs.set('CONFIGURE_OPTIONS', ' '.join(configure_options))
-php_config_defs.set('PHP_INSTALLED_SAPIS', ' ' + ' '.join(sapis))
+php_config_substitutions.set('CONFIGURE_OPTIONS', ' '.join(configure_options))
+php_config_substitutions.set('PHP_INSTALLED_SAPIS', ' ' + ' '.join(sapis))
 
 php_config = configure_file(
     input : 'php-config.in',
     output : 'php-config',
-    configuration : php_config_defs,
+    configuration : php_config_substitutions,
 )
 
 install_data(php_config, install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')

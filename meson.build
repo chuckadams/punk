@@ -12,6 +12,25 @@ cflags = [
 
 fs = import('fs')
 
+# PHP's version, as opposed to this project's -- meson.project_version() is
+# punk's own 0.1.  configure normally generates main/php_version.h from
+# configure.ac, but the file is tracked and the meson build has no configure
+# step, so the tracked copy is read here: php-config, php_config.h and FPM's man
+# page all want the value, and reading it in one place keeps them agreeing.
+php_version = ''
+php_version_id = 0
+foreach line : fs.read(meson.project_source_root() / 'main/php_version.h').split('\n')
+    stripped = line.strip()
+    if stripped.startswith('#define PHP_VERSION ')
+        php_version = stripped.replace('#define PHP_VERSION ', '').strip().replace('"', '')
+    elif stripped.startswith('#define PHP_VERSION_ID ')
+        php_version_id = stripped.replace('#define PHP_VERSION_ID ', '').strip().to_int()
+    endif
+endforeach
+if php_version == '' or php_version_id == 0
+    error('could not read PHP_VERSION/PHP_VERSION_ID from main/php_version.h')
+endif
+
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(cflags), language : 'c')
 add_project_arguments(['-DPUNK', '-DPUNK_MESON'], language : ['c', 'cpp'])
@@ -49,6 +68,10 @@ cli_static_extensions = [
 # be written from main/ because configure_file() cannot write into a
 # subdirectory of the build directory, and Zend/zend_config.h -- which meson
 # generates into the build's Zend/ -- includes <../main/php_config.h>.
+#
+# The name is project-wide: the SAPI builds read the answers back out of it
+# (sapi/fpm picks its trace backend that way), so a subdirectory must not rebind
+# it to a configuration_data of its own.
 php_config_defs = configuration_data()
 php_config_template = files('build/php_config.h.in')
 
@@ -287,7 +310,10 @@ punk_frontend_link_whole = [
 
 subdir('scripts')
 # sapi/embed reuses sapi/cli's shared sources and its generated arginfo, so it
-# has to come after it.
+# has to come after it.  sapi/fpm reuses nothing from the other front-ends -- it
+# has its own main() -- but comes last for the same reason the others do: it
+# needs punk_frontend_* from above.
 subdir('sapi/cli')
 subdir('sapi/cgi')
 subdir('sapi/embed')
+subdir('sapi/fpm')

@@ -81,6 +81,12 @@ module_args=()
 # startup warnings that produces then fail every test.
 while IFS= read -r so; do
     name=$(basename "$so" .so)
+    # libphp is the embed SAPI's shared library, not a module. Punk installs the
+    # modules flat into PHP_EXTENSION_DIR (libdir), so on an installed Linux tree
+    # libphp.so sits beside them; loading it makes every tested process print
+    # "Invalid library" on startup and fail on that warning. The build-directory
+    # branch collects from ext/ and never sees it, but the guard costs nothing.
+    case "$name" in libphp*) continue ;; esac
     [ "$name" = dl_test ] && continue
     grep -qx "$name" <<<"$builtin_modules" && continue
     module_args+=(-d "extension=$so")
@@ -100,6 +106,16 @@ if [ -x "$cgi" ]; then
 else
     echo "run-phpt-suite: warning: no $cgi, web tests will fail" >&2
 fi
+
+# The FPM tests are ordinary .phpt files that start a php-fpm of their own and
+# ask it to load the extensions the test needs (--EXTENSIONS--).  FPM\Tester
+# takes the directory to load them from out of TEST_FPM_EXTENSION_DIR, and
+# without it the worker gets no modules at all: the tests whose subject is a
+# function or an ini directive supplied by an extension then fail -- undefined
+# function, "unable to set" -- instead of testing anything.  Upstream does not
+# hit this because its CI builds those extensions into the binary; punk builds
+# them shared, so the directory has to be passed the same way the CGI binary is.
+export TEST_FPM_EXTENSION_DIR=$ext_dir
 
 if [ -n "${PUNK_TEST_INI:-}" ]; then
     ini_args=(-c "$PUNK_TEST_INI")
