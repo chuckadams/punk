@@ -103,6 +103,11 @@ meson: _meson-setup _meson-compile _meson-test _meson-install
 # rebuild in place -- no wipe, no install
 meson-rebuild: _meson-compile
 
+# not the .phpt suite -- that is `just _meson-test` / `just test-installed`
+# run meson's own test() targets: the CLI smoke test and the embed host test
+unit-test:
+    {{shell}} meson test -C {{meson_build_dir}} --print-errorlogs
+
 _meson-setup: _wipe-build
     {{shell}} meson setup --prefix {{prefix}} --libdir {{prefix}}/lib {{meson_build_dir}}
 

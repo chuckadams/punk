@@ -26,3 +26,15 @@ install_headers(
     'php_embed.h',
     subdir : 'php/sapi/embed',
 )
+
+# A host program that embeds PHP and checks the result, so `meson test` covers
+# libphp the way the CLI test covers the punk executable.  It links the library
+# rather than the sources, which is what a real embedder does.
+embed_basic_exe = executable(
+    'embed_basic',
+    'tests/embed_basic.c',
+    include_directories : [includes, '.'],
+    link_with : libphp,
+)
+
+test('sapi_embed_test_basic', embed_basic_exe)

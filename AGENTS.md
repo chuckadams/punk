@@ -197,6 +197,7 @@ PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt    # one test file or d
 PLATFORM=aarch64-linux-gnu just _meson-test                 # the same suite, on the binaries just built
 PLATFORM=aarch64-linux-gnu just test-installed              # the same suite, on the installed binaries
 PLATFORM=aarch64-linux-gnu just test-installed ext/curl/tests
+PLATFORM=aarch64-linux-gnu just unit-test                   # meson's test() targets: CLI + embed smoke tests
 ```
 
 `just test` needs an autotools build tree (`just configure` + `just make`): `make test` runs the autotools
@@ -212,6 +213,10 @@ loads every module except `dl_test` and the ones the binary already contains, po
 matching `php-cgi` for the web tests, and applies the usual `PHP_TEST_SETTINGS`. `test-installed` propagates
 the runner's exit status; `_meson-test` ignores it on purpose, so that `just meson` still installs a build
 whose tests fail. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
+
+`just unit-test` runs meson's own `test()` targets instead, which are smoke tests of the built artefacts
+rather than `.phpt` files: `sapi/cli` runs the `punk` binary, and `sapi/embed` builds and runs a host program
+that embeds PHP, evaluates a snippet and checks the returned value.
 
 Either way: extra args come from `TEST_PHP_ARGS` (`-q -j12` here), and `SKIP_SLOW_TESTS=1` / the
 default-offline `SKIP_ONLINE_TESTS` prune the suite. Both targets reach every test that the autotools build
