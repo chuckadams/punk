@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2046
+# shellcheck disable=SC2086
+
+set -euo pipefail
+
+cd $(dirname $0)
+set -a
+. .env
+set +a
+cd ../..
+
+# clion can't cope with compilers of >1 word like "ccache cc"
+# I could fix this with a wrapper, but this is simpler for now
+export CC=clang
+export CXX=clang++
+
+exec meson "$@"
