@@ -35,6 +35,13 @@ sapi_cli_exe = executable(
 
 test('sapi_cli_test_basic', sapi_cli_exe)
 
+# And a `php` pointing at it, so shebangs, scripts and tooling that spell the
+# CLI that way work against this install.  punk stays the name the binary is
+# built, installed and referred to under -- php-config still answers
+# --php-binary with it -- and this is a symlink rather than a second copy so
+# there is only ever one of it.
+install_symlink('php', pointing_to: 'punk', install_dir: get_option('bindir'))
+
 install_headers(
     'cli.h',
     subdir : 'php/sapi/cli',

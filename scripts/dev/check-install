@@ -42,6 +42,12 @@ for dir in main TSRM Zend ext ext/date/lib; do
 done
 ok "php-config reports this install's paths"
 
+echo "checking the php symlink"
+[ -L "$prefix/bin/php" ] || fail "$prefix/bin/php is not a symlink"
+[ "$("$prefix/bin/php" -n -r 'echo "ok";' 2>/dev/null)" = "ok" ] \
+    || fail "$prefix/bin/php does not run"
+ok "the CLI is reachable as php"
+
 echo "checking that the installed headers can build an out-of-tree module"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
