@@ -23,8 +23,8 @@ punk=$prefix/bin/punk
 fail() { printf 'check-install: %s\n' "$*" >&2; exit 1; }
 ok() { printf '  ok  %s\n' "$*"; }
 
-[ -x "$php_config" ] || fail "$php_config is missing -- install first (just meson)"
-[ -x "$punk" ] || fail "$punk is missing -- install first (just meson)"
+[ -x "$php_config" ] || fail "$php_config is missing -- install first (just all)"
+[ -x "$punk" ] || fail "$punk is missing -- install first (just all)"
 
 echo "checking php-config"
 [ "$("$php_config" --php-binary)" = "$punk" ] \

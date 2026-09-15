@@ -3,7 +3,7 @@
 # build a third-party extension the autoconf way -- the one contract the meson
 # port keeps rather than replaces.
 #
-#   just check-phpize
+#   just distcheck        (or `just _check-phpize` for this gate on its own)
 #
 # Nothing in the meson build reads the payload, so nothing there would notice if
 # it rotted; this is the gate that does.  It builds a throwaway extension whose
@@ -30,9 +30,9 @@ fail() { printf 'check-phpize: %s\n' "$*" >&2; exit 1; }
 ok() { printf '  ok  %s\n' "$*"; }
 skip() { printf 'check-phpize: skipped: %s\n' "$*" >&2; exit 0; }
 
-[ -x "$phpize" ] || fail "$phpize is missing -- install first (just meson)"
-[ -x "$php_config" ] || fail "$php_config is missing -- install first (just meson)"
-[ -x "$punk" ] || fail "$punk is missing -- install first (just meson)"
+[ -x "$phpize" ] || fail "$phpize is missing -- install first (just all)"
+[ -x "$php_config" ] || fail "$php_config is missing -- install first (just all)"
+[ -x "$punk" ] || fail "$punk is missing -- install first (just all)"
 
 autoconf=${PHP_AUTOCONF:-autoconf}
 autoheader=${PHP_AUTOHEADER:-autoheader}

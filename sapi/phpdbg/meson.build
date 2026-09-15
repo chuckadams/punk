@@ -66,7 +66,7 @@ phpdbg_exe = executable(
     install : true,
 )
 
-# A smoke test of the built binary for `just unit-test`: -V prints the banner and
+# A smoke test of the built binary for `just meson-tests`: -V prints the banner and
 # exits, which starts the engine, registers the SAPI and tears it down again.
 # (-v is phpdbg's "disable quietness", not its version flag.)
 test('sapi_phpdbg_test_version', phpdbg_exe, args : ['-n', '-V'])

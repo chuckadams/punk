@@ -19,7 +19,7 @@ build_dir=${1:?usage: check-modules <meson build dir>}
 binary=$build_dir/sapi/cli/punk
 
 if [ ! -x "$binary" ]; then
-    echo "no punk binary at $binary -- run 'just meson' or 'just meson-rebuild' first" >&2
+    echo "no punk binary at $binary -- run 'just all' or 'just compile' first" >&2
     exit 1
 fi
 

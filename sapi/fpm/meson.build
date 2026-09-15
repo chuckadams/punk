@@ -72,7 +72,7 @@ php_fpm_exe = executable(
     install_dir : get_option('sbindir'),
 )
 
-# A smoke test of the built binary, which is what `just unit-test` runs: starting
+# A smoke test of the built binary, which is what `just meson-tests` runs: starting
 # up far enough to print the version exercises SAPI registration, module startup
 # and a full request startup/shutdown without needing a pool to connect to.
 test('sapi_fpm_test_version', php_fpm_exe, args : ['-n', '--version'])

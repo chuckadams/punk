@@ -12,6 +12,27 @@ tree, and `phpize` ships what it needs as an installed payload.  The autoconf
 oracle was retired on purpose (see the addendum); the comparison numbers above
 are the last ones taken before that.
 
+> **Note on recipe names.** This document is a record of the port and is not kept
+> in step with the `justfile`; the recipe names below are the ones that were live
+> when each passage was written. A later refactor renamed them:
+>
+> | in this document | today |
+> |---|---|
+> | `just _meson-setup` | `just setup` |
+> | `just _meson-compile` | `just compile` |
+> | `just _meson-install` | `just install` |
+> | `just meson` | `just all` (no longer runs the phpize gate — that is `just distcheck` now) |
+> | `just meson-rebuild` | `just compile` |
+> | `just unit-test` | `just meson-tests` |
+> | `just check-modules` | `just _check-modules`, or `just distcheck` |
+> | `just check-install` | `just _check-install`, or `just distcheck` |
+> | `just check-phpize` | `just _check-phpize`, or `just distcheck` |
+>
+> Names from earlier still — `just configure`, `just make`, `just compare-config`,
+> `just generate`, `just _meson-test` — were already gone before that refactor and
+> are left as they were written, since the passages that name them are describing
+> their deletion.
+
 ## Where configuration belongs in meson
 
 There is no separate configure phase to hook into. `meson setup` creates a build

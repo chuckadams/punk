@@ -37,13 +37,18 @@ Every build goes through the root `justfile`, which requires `PLATFORM` to name 
 make or the platform shell script directly** — if a task has no recipe, add one to the `justfile` instead of
 working around it.
 
-There is one configuration, and it is meson's. `just _meson-setup` wipes the build directory and runs
-`meson setup`, which does every check and writes every generated header into the build directory:
-`main/php_config.h`, `Zend/zend_config.h`, `main/build-defs.h`, `ext/date/lib/timelib_config.h` and
+There is one configuration, and it is meson's. `just setup` wipes the build directory and runs `meson setup`,
+which does every check and writes every generated header into the build directory: `main/php_config.h`,
+`Zend/zend_config.h`, `main/build-defs.h`, `ext/date/lib/timelib_config.h` and
 `ext/mbstring/libmbfl/config.h`. Nothing lands in the source tree, so there is no separate configure step to
-run and `meson configure` edits the stored options in place. `just meson` runs the whole chain — setup,
-compile, the `.phpt` suite, install, then the phpize gate — and `just meson-rebuild` recompiles in place
-without wiping or installing.
+run and `meson configure` edits the stored options in place. `just all` runs the whole chain — setup,
+compile, meson's own smoke tests, the `.phpt` suite, install — and `just compile` recompiles in place without
+wiping or installing. Installing is a recipe of its own too (`just install`), which wipes the prefix first.
+
+The gates are deliberately *not* part of `just all`: `just distcheck` runs them, and it is what to run
+before trusting a build. It chains `_check-modules` (every built module loads), `_check-install` (the
+install is usable from the outside) and `_check-phpize` (the shipped phpize payload still builds a
+third-party extension); each is runnable on its own when one of them needs a re-run.
 
 The autoconf build is gone: no `configure.ac`, no `buildconf`, no tree-side `build/*.m4`, no `Makefile.global`
 driving anything here, and no `platform/_common/configure-cli` (the per-platform `configure` wrapper that
@@ -51,31 +56,32 @@ sourced it went with it). What survives of the m4 stack is the payload phpize sh
 authors — see "phpize and third-party extensions" below.
 
 ```sh
-PLATFORM=aarch64-linux-gnu just _meson-setup    # meson configuration (owns the build dir)
-PLATFORM=aarch64-linux-gnu just meson           # setup, compile, test, install, check-phpize (wipes build dir + prefix)
-PLATFORM=aarch64-linux-gnu just meson-rebuild   # rebuild in place (no wipe, no install)
-PLATFORM=aarch64-linux-gnu just fuzzer          # the Clang fuzzing SAPI, in a build dir of its own
-PLATFORM=aarch64-linux-gnu just check-modules   # load every built module, report the ones that fail
-PLATFORM=aarch64-linux-gnu just check-install   # php-config + installed headers: build an out-of-tree module against them
-PLATFORM=aarch64-linux-gnu just check-phpize    # phpize + payload: build a third-party extension the autoconf way
+PLATFORM=aarch64-linux-gnu just setup           # meson configuration (wipes and owns the build dir)
+PLATFORM=aarch64-linux-gnu just compile         # rebuild in place (no wipe, no install)
+PLATFORM=aarch64-linux-gnu just all             # setup, compile, meson smoke tests, .phpt suite, install (wipes build dir + prefix)
+PLATFORM=aarch64-linux-gnu just install         # install what is already built (wipes the prefix first)
+PLATFORM=aarch64-linux-gnu just distcheck       # the gates: check-modules, check-install, check-phpize
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt   # .phpt suite, or one file/directory
 PLATFORM=aarch64-linux-gnu just test-installed  # .phpt suite against the installed binaries
+PLATFORM=aarch64-linux-gnu just meson-tests     # meson's test() targets: one smoke test per front-end
+PLATFORM=aarch64-linux-gnu just fuzzer          # the Clang fuzzing SAPI, in a build dir of its own
 PLATFORM=aarch64-linux-gnu just shell           # interactive shell in the platform environment
 PLATFORM=aarch64-linux-gnu just build-image     # rebuild the platform's docker image
 ```
 
-`just --list` shows the public recipes; `_`-prefixed recipes (`_meson-setup`, `_meson-compile`,
-`_meson-install`, `_fuzzer-setup`, `_fuzzer-compile`, `_wipe-build`, `_wipe-fuzzer-build`, `_wipe-install`)
-are pieces called by the others, and are all runnable on their own. `just clean` removes build leftovers and
-every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/`; meson regenerates all of it, so a
-rebuild after `just clean` is just `just meson`. The fuzzer's build directory is
-`<platform>/.meson-build-fuzzer`, alongside the authoritative `.meson-build`; `_wipe-fuzzer-build` is what
+`just --list` shows the public recipes; the `_`-prefixed ones (`_wipe-build`, `_wipe-install`,
+`_fuzzer-setup`, `_fuzzer-compile`, `_wipe-fuzzer-build`, `_check-modules`, `_check-install`,
+`_check-phpize`) are the pieces the public recipes chain together, and are all runnable on their own —
+re-running one `_check-*` by hand is how to redo a single gate after `just distcheck` reported on it. `just
+clean` removes build leftovers and every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/`;
+meson regenerates all of it, so a rebuild after `just clean` is just `just all`. The fuzzer's build directory
+is `<platform>/.meson-build-fuzzer`, alongside the authoritative `.meson-build`; `_wipe-fuzzer-build` is what
 removes it.
 
 | platform | how it runs |
 |---|---|
 | `aarch64-linux-gnu` | The only working platform. Runs everything in docker compose: Debian forky image with clang+ccache, meson, just, re2c/bison and every extension's `-dev` library; repo mounted at `/punk`, `/opt/punk` (install prefix) and `/ccache` on named volumes. |
-| `aarch64-apple-darwin` | Native macOS (`platform/<plat>/shell` sources `.env` and execs on the host, no docker). Builds against homebrew (`ccache` + homebrew LLVM from `/opt/homebrew/opt/llvm/bin`, since Xcode's tools demand an accepted license); `just meson` works end to end — compile, `just test`, install, `check-modules`, `check-install`, `check-phpize`. There is no writable `/opt` on the host, so drive it with `just prefix=/tmp/opt/punk …` (or `PUNK_INSTALL_PREFIX`). |
+| `aarch64-apple-darwin` | Native macOS (`platform/<plat>/shell` sources `.env` and execs on the host, no docker). Builds against homebrew (`ccache` + homebrew LLVM from `/opt/homebrew/opt/llvm/bin`, since Xcode's tools demand an accepted license); `just all` works end to end — setup, compile, the meson smoke tests, `just test`, install — and `just distcheck` passes all three gates afterwards. There is no writable `/opt` on the host, so drive it with `just prefix=/tmp/opt/punk …` (or `PUNK_INSTALL_PREFIX`). |
 
 - `platform/<triple>/.env` is git-ignored — copy `.env.example` on a fresh clone. It supplies `CC`/`CXX`
   (`ccache clang`), `SKIP_SLOW_TESTS=1` and `TEST_PHP_ARGS` (consumed by `run-tests.php`), plus whatever the
@@ -88,9 +94,10 @@ removes it.
 - `just shell` opens a shell in the platform environment (the underlying `platform/<triple>/shell` wrapper is
   what `just` runs every recipe through; it execs directly when docker is unavailable, i.e. inside the
   container). Image changes need `just build-image`, which runs on the host — an image cannot be rebuilt from
-  inside itself. A `punk-builder` service exists whose entrypoint is `just meson`, for one-shot builds.
+  inside itself. A `punk-builder` service exists whose entrypoint is `just all`, for one-shot builds.
 - The container image keeps `autoconf`, `autoheader` and `make` even though punk's own build no longer uses
-  them: `just check-phpize` needs them, and so does anyone building an extension against the install.
+  them: `just distcheck`'s phpize gate needs them, and so does anyone building an extension against the
+  install.
 - `/opt/punk` is a docker volume, not a host path — run the installed `punk` binary from `just shell`.
 
 ## The meson build
@@ -172,7 +179,7 @@ reference it was ported from. Conventions:
   assigns its own object of that name leaves everything after it reading the wrong one.
   `scripts/meson.build` calls its php-config substitutions `php_config_substitutions` for exactly that reason.
 - Every `shared_module()` must declare the external libraries it links, in `dependencies:`. A module with
-  unresolved symbols still links fine on Linux and only fails when it is loaded, so `just check-modules` runs
+  unresolved symbols still links fine on Linux and only fails when it is loaded, so `just distcheck` runs
   the CLI with every built module loaded and `LD_BIND_NOW=1` — eager binding catches symbols that would
   otherwise only blow up when a code path first calls them. Modules are loaded in one process in
   alphabetical order, which is also how the inter-extension dependencies resolve (`pdo` before the pdo
@@ -191,8 +198,8 @@ reference it was ported from. Conventions:
   those terms, reports `--php-binary` as `punk` — the real binary, which the `php` symlink points at, so
   neither name is wrong for a caller — and names all five SAPIs for `--php-sapis`; `php-config.in` gained one
   placeholder for the binary name, since the meson build renames the CLI and the autoconf build does not.
-- `just check-install` is the gate on all of that: it checks php-config's answers, that the CLI runs when it
-  is reached through the `php` symlink, compiles a one-file out-of-tree extension against
+- `just distcheck`'s header-install step is the gate on all of that: it checks php-config's answers, that the
+  CLI runs when it is reached through the `php` symlink, compiles a one-file out-of-tree extension against
   `$prefix/include/php` with `cc` and runs it with `$prefix/bin/punk`, and verifies that every header of the
   directories installed wholesale is installed. That last check is not theoretical — it found 57 headers
   missing (including `main/streams/php_stream_errors.h`, which `main/php_streams.h` includes), so the install
@@ -204,8 +211,8 @@ Known gaps, in rough priority order:
    read by anything, so an upstream change to one is invisible until someone compares it by hand. Source
    lists have drifted before: `ext/gd` was ~25 files behind (including the whole newer libgd drawing/path
    API) and `ext/zip` was missing `zip_source.c`. Drift surfaces as undefined symbols at load time rather
-   than as build errors, which is what `just check-modules` is for — compare against `config.m4` when
-   touching an extension, and when an upstream merge brings one in.
+   than as build errors, which is what `just distcheck`'s module-loading step is for — compare against
+   `config.m4` when touching an extension, and when an upstream merge brings one in.
 2. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name: `get_binary()`
    substitutes the sapi into the basename, and probes `<build>/sapi/<sapi>/` first. That is why the install
    is entered through `bin/php` rather than `bin/punk` — "punk" contains no "php", so the substitution would
@@ -234,10 +241,12 @@ with them, because `gen_stub.php` downloads it from GitHub when it is not beside
 what makes an out-of-tree `.stub.php` work offline. (That is also why `scripts/phpize.in` copies
 `PHP-Parser-*` along with its named file list; it globs, so the version stays pinned in `gen_stub.php` alone.)
 
-`just check-phpize` is the gate. It builds a throwaway extension — one option, one `AC_DEFINE`, one module,
-one `.phpt` — through `phpize`, `configure`, `make`, arginfo generation and `make test`, and loads the result
-into the installed binary. It is skipped rather than failed when `autoconf`, `autoheader` or `make` is
-missing, because punk's own build must not depend on them. `just meson` runs it after installing.
+`just distcheck`'s `_check-phpize` step is the gate. It builds a throwaway extension — one option, one
+`AC_DEFINE`, one module, one `.phpt` — through `phpize`, `configure`, `make`, arginfo generation and
+`make test`, and loads the result into the installed binary. It is skipped rather than failed when
+`autoconf`, `autoheader` or `make` is missing, because punk's own build must not depend on them. `just all`
+installs but no longer runs it, so running `just distcheck` after `just all` is what covers the install end to
+end.
 
 What this does *not* do is make out-of-tree builds autoconf-free: an extension author still needs autoconf,
 autoheader, make, a C compiler and `sed`/`awk`, exactly as before. The m4 stack is quarantined, not
@@ -259,7 +268,7 @@ shared.
   so `build/gen-zend-vm.sh` copies the script and its inputs into the build directory and runs the copy there.
   The VM headers are installed by that target's `install:` kwarg (install_headers rejects custom_target
   outputs), which also drops a harmless `zend_vm_opcodes.c` into the include tree.  Touching any `*.l`, `*.y`,
-  `*.re` or `Zend/zend_vm_def.h` is picked up by the next `just meson`.  (Upstream commits the VM files, so an
+  `*.re` or `Zend/zend_vm_def.h` is picked up by the next `just all`.  (Upstream commits the VM files, so an
   upstream merge that touches them will conflict with punk's deletion; the resolution is to regenerate them.)
 - Arginfo headers (`*_arginfo.h`, `*_decl.h`, `*_legacy_arginfo.h`) are generated by `build/gen_stub.php` from the
   `*.stub.php` files, into the build directory via `build/gen-stub.sh` (which copies the stub next to the output
@@ -284,20 +293,22 @@ PLATFORM=aarch64-linux-gnu just test                        # whole suite, on th
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt    # one test file or directory (repeatable)
 PLATFORM=aarch64-linux-gnu just test-installed              # the same suite, on the installed binaries
 PLATFORM=aarch64-linux-gnu just test-installed ext/curl/tests
-PLATFORM=aarch64-linux-gnu just unit-test                   # meson's test() targets: one smoke test per front-end
+PLATFORM=aarch64-linux-gnu just meson-tests                 # meson's test() targets: one smoke test per front-end
 ```
 
 `just test` runs the suite against `$meson_build_dir/sapi/cli/punk` without installing anything — it is a
-step of `just meson`, and also usable on its own for iteration. `just test-installed` does the same for
-`$prefix/bin/php` after `just meson`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
+step of `just all`, and also usable on its own for iteration. `just test-installed` does the same for
+`$prefix/bin/php` after `just all`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
 from the binary's path: for a build directory it symlinks the modules scattered under `ext/` into
 `<build>/modules` and points `extension_dir` there, and for an install it uses `$prefix/lib`. Either way it
 loads every module except `dl_test` and the ones the binary already contains, exports `TEST_FPM_EXTENSION_DIR`
 for the FPM tests, and applies the usual `PHP_TEST_SETTINGS`. It deliberately exports nothing for the CGI and
 phpdbg binaries: `run-tests.php` derives those itself (see the gap below), and an exported path would take
 precedence over that lookup and hide whether it still works. `test-installed` propagates the runner's exit
-status; `test` ignores it on purpose, so that `just meson` still installs a build whose tests fail — read the
-summary line. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
+status; `test` ignores it on purpose, so that `just all` still installs a build whose `.phpt` tests fail —
+read the summary line. `just all` runs `meson-tests` immediately before `test` and that one does *not* ignore
+failure, on the grounds that a front-end which cannot start at all is a build error rather than a test
+result. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
 
 `run-tests.php` discovers `sapi/fpm/tests` along with `Zend`, `tests` and `ext`, so those ~143 tests are part
 of the ordinary suite once a `php-fpm` exists for them to find: `FPM\Tester::findExecutable()` walks two
@@ -309,7 +320,7 @@ macOS bind mount: `AF_UNIX` paths there are capped well below the 107 characters
 overflows the limit with, so the truncated path it expects to bind never binds. On a native Linux checkout it
 passes.
 
-`just unit-test` runs meson's own `test()` targets instead, which are smoke tests of the built artefacts
+`just meson-tests` runs meson's own `test()` targets instead, which are smoke tests of the built artefacts
 rather than `.phpt` files: `sapi/cli` runs the `punk` binary, `sapi/embed` builds and runs a host program that
 embeds PHP, evaluates a snippet and checks the returned value, `sapi/fpm` runs `php-fpm -n --version` and
 `sapi/phpdbg` runs `phpdbg -n -V`. Each of the last two starts the engine, registers the SAPI and tears it
@@ -329,7 +340,10 @@ exact set moves with the machine and the load — a full run has been seen at bo
 change in between — so treat the count as approximate, and check whether a failure is in the C code or in the
 tooling before blaming the build.
 
-## Roadmap constraints (keep these in mind, from the justfile)
+## Roadmap constraints
+
+These lived as comments in the `justfile` until the recipe refactor dropped them; they are project
+constraints, not justfile ones, so they are recorded here now.
 
 - To-do: the remaining `*dbm` packages, ODBC (builds, fails many tests), `pdo_dblib` (crashes the suite),
   getting `mysqli`/`mysqlnd` to load when built shared, an option for which extensions are static (so the
