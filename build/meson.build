@@ -1334,6 +1334,24 @@ foreach probe : fpm_lq_probes
     endif
 endforeach
 
+# ---- phpdbg -----------------------------------------------------------------
+# The symbol sapi/phpdbg's config.m4 contributes, read only by phpdbg.
+
+# HAVE_USERFAULTFD_WRITEFAULT is what phpdbg's write watchpoints use.  config.m4
+# asks for the declaration and then takes the answer only under thread safety --
+# the non-thread-safe build had to prove working pthreads instead.  The meson
+# build is ZTS by default, so the option is the whole of that condition.
+if get_option('zts') and cc.has_header_symbol('linux/userfaultfd.h', 'UFFDIO_WRITEPROTECT_MODE_WP', args : check_args)
+    php_config_defs.set('HAVE_USERFAULTFD_WRITEFAULT', 1)
+endif
+
+# HAVE_PHPDBG_READLINE is deliberately left undefined, so phpdbg's interactive
+# prompt reads a line at a time instead.  --enable-phpdbg-readline defaults to no
+# in config.m4, platform/_common/configure-cli does not override it and upstream's
+# CI passes a bare --enable-phpdbg, so this is the reference configuration.
+# Punk does link libedit into every front-end, so enabling it is a one-line
+# change if someone wants it; it is off because the reference build has it off.
+
 # ---- deliberately not ported ----------------------------------------------
 # LT_OBJDIR, STDC_HEADERS       libtool and pre-C89 leftovers
 # HAVE_PRESERVE_NONE            unused

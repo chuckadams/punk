@@ -11,10 +11,12 @@
 #                           <build>/modules -- the equivalent of the autotools
 #                           modules/ directory -- and that is passed as
 #                           extension_dir.  <build>/sapi/cgi/php-cgi runs the
-#                           web tests.
+#                           web tests and <build>/sapi/phpdbg/phpdbg the
+#                           --PHPDBG-- ones.
 #   <prefix>/bin/punk       Installed.  Modules come from <prefix>/lib, which is
 #                           also the compiled-in extension_dir, and
-#                           <prefix>/bin/php-cgi runs the web tests.
+#                           <prefix>/bin/php-cgi runs the web tests while
+#                           <prefix>/bin/phpdbg runs the --PHPDBG-- ones.
 #
 # Modules the binary already contains are not loaded again, and dl_test is
 # skipped the way the makefile does it (it is a test fixture rather than a
@@ -49,6 +51,7 @@ if [ "$(basename "$binary_dir")" = cli ] && [ "$(basename "$(dirname "$binary_di
     # Built in place: gather the modules into one directory first.
     build_dir=$(dirname "$(dirname "$binary_dir")")
     cgi=$build_dir/sapi/cgi/php-cgi
+    phpdbg=$build_dir/sapi/phpdbg/phpdbg
     ext_dir=$build_dir/modules
 
     mkdir -p "$ext_dir"
@@ -65,6 +68,7 @@ else
     # extension_dir already points at them.
     prefix=$(dirname "$binary_dir")
     cgi=$prefix/bin/php-cgi
+    phpdbg=$prefix/bin/phpdbg
     ext_dir=$prefix/lib
 fi
 
@@ -105,6 +109,17 @@ if [ -x "$cgi" ]; then
     export TEST_PHP_CGI_EXECUTABLE=$cgi
 else
     echo "run-phpt-suite: warning: no $cgi, web tests will fail" >&2
+fi
+
+# The --PHPDBG-- tests need the debugger, and run-tests.php's own lookup cannot
+# derive it here: it substitutes "php" for the sapi in the tested binary's name,
+# and "punk" contains no "php", so it deliberately gives up rather than let the
+# tested binary pass as its own phpdbg.  (It would find the build-tree binary by
+# path, but not an installed one.)
+if [ -x "$phpdbg" ]; then
+    export TEST_PHPDBG_EXECUTABLE=$phpdbg
+else
+    echo "run-phpt-suite: warning: no $phpdbg, --PHPDBG-- tests will skip" >&2
 fi
 
 # The FPM tests are ordinary .phpt files that start a php-fpm of their own and

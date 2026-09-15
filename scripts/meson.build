@@ -26,9 +26,9 @@ configure_options = [
 ]
 
 # The front-ends this build installs.  Only cli and cgi are special-cased in
-# php-config.in; embed and fpm are here so that --php-sapis answers what the
-# install actually contains, the way autoconf's PHP_INSTALLED_SAPIS does.
-sapis = ['cli', 'cgi', 'embed', 'fpm']
+# php-config.in; embed, fpm and phpdbg are here so that --php-sapis answers what
+# the install actually contains, the way autoconf's PHP_INSTALLED_SAPIS does.
+sapis = ['cli', 'cgi', 'embed', 'fpm', 'phpdbg']
 
 # The @name@ substitutions for php-config.in.  Deliberately not called
 # php_config_defs: that name holds the generated C header's configuration_data

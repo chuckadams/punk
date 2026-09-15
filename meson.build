@@ -310,10 +310,11 @@ punk_frontend_link_whole = [
 
 subdir('scripts')
 # sapi/embed reuses sapi/cli's shared sources and its generated arginfo, so it
-# has to come after it.  sapi/fpm reuses nothing from the other front-ends -- it
-# has its own main() -- but comes last for the same reason the others do: it
-# needs punk_frontend_* from above.
+# has to come after it.  sapi/fpm and sapi/phpdbg reuse nothing from the other
+# front-ends -- each has its own main() -- but come last for the same reason the
+# others do: they need punk_frontend_* from above.
 subdir('sapi/cli')
 subdir('sapi/cgi')
 subdir('sapi/embed')
 subdir('sapi/fpm')
+subdir('sapi/phpdbg')

@@ -24,7 +24,6 @@ NOT_PORTED = {
     'STDC_HEADERS': 'pre-C89 leftover',
     'HAVE_PRESERVE_NONE': 'unused',
     'HAVE_DECL_P_JAILID': 'FreeBSD only',
-    'HAVE_USERFAULTFD_WRITEFAULT': 'phpdbg, not built by punk',
 }
 
 DEFINE = re.compile(r'^#define\s+([A-Za-z_][A-Za-z0-9_]*)[ \t]*(.*)$')
