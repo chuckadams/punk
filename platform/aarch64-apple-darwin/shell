@@ -5,6 +5,10 @@
 set -euo pipefail
 
 cd $(dirname $0)
+# .env is sourced directly here (no docker compose env_file), so the variables
+# must be exported for the child process to see them -- PKG_CONFIG_PATH, CC, ...
+set -a
 . .env
+set +a
 cd ../..
 exec "${@:-bash}"

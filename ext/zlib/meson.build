@@ -15,6 +15,7 @@ shared_module(
     'zlib',
     [ext_zlib_sources, zlib_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [],

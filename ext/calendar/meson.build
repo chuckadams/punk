@@ -20,6 +20,7 @@ shared_module(
     'calendar',
     [ext_calendar_sources, calendar_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     install : true,

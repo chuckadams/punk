@@ -6,6 +6,7 @@ shared_module(
     'skeleton',
     [ext_skeleton_sources],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes],
     dependencies: [],

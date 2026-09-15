@@ -44,6 +44,7 @@ if not cli_static_extensions.contains('date')
         'date',
         [ext_date_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : ext_date_c_args,
         include_directories : [includes],
         install : true,

@@ -173,7 +173,10 @@ subdir('ext/pcntl')
 subdir('ext/pcre')
 subdir('ext/pdo')
 # subdir('ext/pdo_dblib')
-subdir('ext/pdo_firebird')
+# Firebird has no homebrew package, so pdo_firebird is Linux-only for now.
+if host_machine.system() == 'linux'
+    subdir('ext/pdo_firebird')
+endif
 subdir('ext/pdo_mysql')
 # subdir('ext/pdo_odbc')
 subdir('ext/pdo_pgsql')
@@ -255,14 +258,18 @@ punk_frontend_arginfo = [
     io_poll_arginfo_gen[0], io_poll_arginfo_gen[1],
     password_arginfo_gen[0], user_filters_arginfo_gen[0],
     php_uri_arginfo_gen[0], php_uri_arginfo_gen[1],
+    # zend_compile.h includes zend_vm_opcodes.h, so the front-end sources
+    # (opcache, ...) must also wait for the VM generator.
+    zend_vm_gen[0], zend_vm_gen[2], zend_vm_gen[3],
 ]
 
 punk_frontend_dependencies = [
     dependency('icu-i18n'),
-    dependency('icu-io'),
+    dependency('icu-uc'),
     dependency('libargon2'),
     dependency('libavif'), # needed because of ext/standard/image.c
     dependency('libedit'),
+    dependency('libpcre2-8'), # php_pcre.h is public and includes pcre2.h
     dependency('libxml-2.0'),
     dependency('openssl'),
     dependency('threads'),

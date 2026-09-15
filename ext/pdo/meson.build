@@ -39,6 +39,7 @@ shared_module(
     'pdo',
     [ext_pdo_sources, pdo_arginfo_gen[0], pdo_dbh_arginfo_gen[0], pdo_stmt_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [],

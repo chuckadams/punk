@@ -41,6 +41,7 @@ if not cli_static_extensions.contains('hash')
         'hash',
         [ext_hash_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args: ['-DKeccakP200_excluded', '-DKeccakP400_excluded', '-DKeccakP800_excluded'],
         include_directories: [includes, 'sha3/generic64lc'],
         install : true,

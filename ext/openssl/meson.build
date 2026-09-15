@@ -25,6 +25,7 @@ shared_module(
     'openssl',
     [ext_openssl_sources, openssl_pwhash_arginfo_gen[0], openssl_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('openssl')],

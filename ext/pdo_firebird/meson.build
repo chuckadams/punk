@@ -16,6 +16,7 @@ shared_module(
     'pdo_firebird',
     [ext_pdo_firebird_sources, pdo_firebird_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     # firebird ships fb_config rather than a pkg-config file

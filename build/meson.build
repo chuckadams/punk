@@ -502,20 +502,30 @@ php_config_defs.set('SIZEOF_SIZE_T', cc.sizeof('size_t'))
 # Declarations have to be defined to 0 when absent -- leaving them undefined is
 # not the same as "not declared" for the code that uses these.
 php_config_defs.set10('HAVE_DECL_STRERROR_R', cc.has_header_symbol('string.h', 'strerror_r', args : check_args))
-php_config_defs.set10('HAVE_DECL_STRPTIME', cc.has_header_symbol('time.h', 'strptime', args : check_args))
-php_config_defs.set10('HAVE_DECL_WCONTINUED', cc.has_header_symbol('sys/wait.h', 'WCONTINUED', args : check_args))
+if cc.has_header_symbol('time.h', 'strptime', args : check_args)
+    php_config_defs.set('HAVE_DECL_STRPTIME', 1)
+endif
+if cc.has_header_symbol('sys/wait.h', 'WCONTINUED', args : check_args)
+    php_config_defs.set('HAVE_DECL_WCONTINUED', 1)
+endif
 php_config_defs.set10('HAVE_DECL_WEXITED', cc.has_header_symbol('sys/wait.h', 'WEXITED', args : check_args))
 php_config_defs.set10('HAVE_DECL_WNOWAIT', cc.has_header_symbol('sys/wait.h', 'WNOWAIT', args : check_args))
 php_config_defs.set10('HAVE_DECL_WSTOPPED', cc.has_header_symbol('sys/wait.h', 'WSTOPPED', args : check_args))
 php_config_defs.set10('HAVE_DECL_P_ALL', cc.has_header_symbol('sys/wait.h', 'P_ALL', args : check_args))
 php_config_defs.set10('HAVE_DECL_P_PIDFD', cc.has_header_symbol('sys/wait.h', 'P_PIDFD', args : check_args))
 php_config_defs.set10('HAVE_DECL_P_UID', cc.has_header_symbol('sys/wait.h', 'P_UID', args : check_args))
-php_config_defs.set10('HAVE_DECL_SYS_PIDFD_OPEN', cc.has_header_symbol('sys/syscall.h', 'SYS_pidfd_open', args : check_args))
-php_config_defs.set10('HAVE_DECL_SYS_WAITID', cc.has_header_symbol('sys/syscall.h', 'SYS_waitid', args : check_args))
+if cc.has_header_symbol('sys/syscall.h', 'SYS_pidfd_open', args : check_args)
+    php_config_defs.set('HAVE_DECL_SYS_PIDFD_OPEN', 1)
+endif
+if cc.has_header_symbol('sys/syscall.h', 'SYS_waitid', args : check_args)
+    php_config_defs.set('HAVE_DECL_SYS_WAITID', 1)
+endif
 
 # iconv is an implementation detail rather than a library, so it is probed here
 # and again per-extension (see ext/iconv/meson.build).
-php_config_defs.set10('HAVE_ICONV_T_DEF', cc.has_header_symbol('iconv.h', 'iconv_t', args : check_args))
+if cc.has_header_symbol('iconv.h', 'iconv_t', args : check_args)
+    php_config_defs.set('HAVE_ICONV_T_DEF', 1)
+endif
 
 check_types = [
     ['HAVE_LONG_DOUBLE', 'long double', ''],
@@ -663,6 +673,11 @@ if get_option('sigchild')
 endif
 if not get_option('fiber-asm')
     php_config_defs.set('ZEND_FIBER_UCONTEXT', 1)
+    if host_machine.system() == 'darwin'
+        # macOS exposes getcontext/makecontext/swapcontext in ucontext.h only
+        # behind _XOPEN_SOURCE (configure.ac's fiber_os == 'mac' branch).
+        php_config_defs.set('_XOPEN_SOURCE', 1)
+    endif
 endif
 # Zend/Zend.m4 defines these by default: signals when sigaction exists, and the
 # stack limit check unless --disable-zend-check-stack-limit is given.
@@ -689,20 +704,42 @@ php_config_defs.set_quoted('DEFAULT_SHORT_OPEN_TAG', '1')
 
 # Struct details.  These are what the C library actually exposes rather than
 # separate functions, so they are member/symbol probes.
-php_config_defs.set10('HAVE_STRUCT_TM_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
+if cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_TM_TM_ZONE', 1)
+endif
 php_config_defs.set10('HAVE_TM_ZONE', cc.has_member('struct tm', 'tm_zone', prefix : '#include<time.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_TM_TM_GMTOFF', cc.has_member('struct tm', 'tm_gmtoff', prefix : '#include<time.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_STAT_ST_BLKSIZE', cc.has_member('struct stat', 'st_blksize', prefix : '#include<sys/stat.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_STAT_ST_BLOCKS', cc.has_member('struct stat', 'st_blocks', prefix : '#include<sys/stat.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_STAT_ST_RDEV', cc.has_member('struct stat', 'st_rdev', prefix : '#include<sys/stat.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY', cc.has_member('struct sockaddr_storage', 'ss_family', prefix : '#include<sys/socket.h>', args : check_args))
-php_config_defs.set10('HAVE_STRUCT_UTSNAME_DOMAINNAME', cc.has_member('struct utsname', 'domainname', prefix : '#include<sys/utsname.h>', args : check_args))
-php_config_defs.set10('GWINSZ_IN_SYS_IOCTL', cc.has_member('struct winsize', 'ws_row', prefix : '#include<sys/ioctl.h>', args : check_args))
-php_config_defs.set10('MAJOR_IN_SYSMACROS', cc.has_header_symbol('sys/sysmacros.h', 'major', args : check_args))
+if cc.has_member('struct tm', 'tm_gmtoff', prefix : '#include<time.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_TM_TM_GMTOFF', 1)
+endif
+if cc.has_member('struct stat', 'st_blksize', prefix : '#include<sys/stat.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_STAT_ST_BLKSIZE', 1)
+endif
+if cc.has_member('struct stat', 'st_blocks', prefix : '#include<sys/stat.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_STAT_ST_BLOCKS', 1)
+endif
+if cc.has_member('struct stat', 'st_rdev', prefix : '#include<sys/stat.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_STAT_ST_RDEV', 1)
+endif
+if cc.has_member('struct sockaddr_storage', 'ss_family', prefix : '#include<sys/socket.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY', 1)
+endif
+if cc.has_member('struct utsname', 'domainname', prefix : '#include<sys/utsname.h>', args : check_args)
+    php_config_defs.set('HAVE_STRUCT_UTSNAME_DOMAINNAME', 1)
+endif
+# These two are checked with #ifdef/#ifndef rather than #if, so they must stay
+# undefined when absent (a `#define ... 0` would still satisfy `defined()`).
+if cc.has_member('struct winsize', 'ws_row', prefix : '#include<sys/ioctl.h>', args : check_args)
+    php_config_defs.set('GWINSZ_IN_SYS_IOCTL', 1)
+endif
+if cc.has_header_symbol('sys/sysmacros.h', 'major', args : check_args)
+    php_config_defs.set('MAJOR_IN_SYSMACROS', 1)
+endif
 php_config_defs.set10('HAVE_DECL_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
 
 # IPv6 support: what PHP means by HAVE_IPV6 is that the resolver can talk AF_INET6.
-php_config_defs.set10('HAVE_IPV6', cc.has_header_symbol('netinet/in.h', 'AF_INET6', args : check_args))
+if cc.has_header_symbol('netinet/in.h', 'AF_INET6', args : check_args)
+    php_config_defs.set('HAVE_IPV6', 1)
+endif
 
 # Compiler builtins (php.m4's PHP_CHECK_BUILTIN_*).  Each is compiled rather
 # than linked, and a builtin that a target does not implement simply stays
@@ -797,11 +834,12 @@ library_symbols = [
     ['HAVE_LDAP_REFRESH_S', 'ldap_refresh_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
     ['HAVE_LDAP_START_TLS_S', 'ldap_start_tls_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
     ['HAVE_LDAP_WHOAMI_S', 'ldap_whoami_s', '#include<ldap.h>', [dep_ldap, dep_lber]],
-    # net-snmp
-    ['HAVE_NETSNMP_INIT_MIB', 'netsnmp_init_mib', net_snmp_prefix, [dep_netsnmp]],
-    ['HAVE_SHUTDOWN_SNMP_LOGGING', 'shutdown_snmp_logging', net_snmp_prefix, [dep_netsnmp]],
-    ['HAVE_SNMP_SHA256', 'usmHMAC192SHA256AuthProtocol', net_snmp_prefix, [dep_netsnmp]],
-    ['HAVE_SNMP_SHA512', 'usmHMAC384SHA512AuthProtocol', net_snmp_prefix, [dep_netsnmp]],
+    # net-snmp.  Its headers include openssl (scapi.h → openssl/ossl_typ.h), so
+    # the openssl dependency must be present for the probe prefix to compile.
+    ['HAVE_NETSNMP_INIT_MIB', 'netsnmp_init_mib', net_snmp_prefix, [dep_netsnmp, dep_openssl]],
+    ['HAVE_SHUTDOWN_SNMP_LOGGING', 'shutdown_snmp_logging', net_snmp_prefix, [dep_netsnmp, dep_openssl]],
+    ['HAVE_SNMP_SHA256', 'usmHMAC192SHA256AuthProtocol', net_snmp_prefix, [dep_netsnmp, dep_openssl]],
+    ['HAVE_SNMP_SHA512', 'usmHMAC384SHA512AuthProtocol', net_snmp_prefix, [dep_netsnmp, dep_openssl]],
     # tidy
     ['HAVE_TIDYOPTGETDOC', 'tidyOptGetDoc', '#include<tidy.h>', [dep_tidy], tidy_include_args],
     ['HAVE_TIDYOPTGETCATEGORY', 'tidyOptGetCategory', '#include<tidy.h>', [dep_tidy], tidy_include_args],
@@ -836,6 +874,14 @@ foreach probe : library_symbols
     endif
 endforeach
 
+# sqlite3_load_extension is absent from the system sqlite3 on macOS (built with
+# SQLITE_OMIT_LOAD_EXTENSION); both the sqlite3 and pdo_sqlite extensions degrade
+# in that case (config0.m4 / config.m4's PHP_CHECK_LIBRARY check).
+if not cc.has_function('sqlite3_load_extension', prefix: '#include<sqlite3.h>', dependencies: [dep_sqlite3], args: check_args)
+    php_config_defs.set('SQLITE_OMIT_LOAD_EXTENSION', 1)
+    php_config_defs.set('PDO_SQLITE_OMIT_LOAD_EXTENSION', 1)
+endif
+
 # Headers that only exist when the library is installed.
 library_headers = [
     ['HAVE_TIDY_H', 'tidy.h', [dep_tidy], tidy_include_args],
@@ -850,9 +896,15 @@ endforeach
 
 # makedev is a macro rather than a function, and epoll is what php.m4 tests with
 # a compile: sys/epoll.h plus a call to epoll_create().
-php_config_defs.set10('HAVE_MAKEDEV', cc.has_header_symbol('sys/sysmacros.h', 'makedev', args : check_args))
-php_config_defs.set10('HAVE_WIFCONTINUED', cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args))
-php_config_defs.set10('HAVE_LIBDL', cc.find_library('dl', required : false).found())
+if cc.has_header_symbol('sys/sysmacros.h', 'makedev', args : check_args)
+    php_config_defs.set('HAVE_MAKEDEV', 1)
+endif
+if cc.has_header_symbol('sys/wait.h', 'WIFCONTINUED', args : check_args)
+    php_config_defs.set('HAVE_WIFCONTINUED', 1)
+endif
+if cc.find_library('dl', required : false).found()
+    php_config_defs.set('HAVE_LIBDL', 1)
+endif
 php_config_defs.set('HAVE_LIBSODIUMLIB', 1)
 
 # Probes that need more than a symbol name.
@@ -911,9 +963,9 @@ php_config_defs.set('MYSQLND_HAVE_SSL', 1)
 php_config_defs.set('MYSQLND_SSL_SUPPORTED', 1)
 php_config_defs.set('MYSQLND_COMPRESSION_ENABLED', 1)
 
-# libedit always provides history_list, and the KOI8 workaround is what the
-# oniguruma in the platform image needs.
-php_config_defs.set('HAVE_HISTORY_LIST', 1)
+# The KOI8 workaround is what the oniguruma in the platform image needs.
+# HAVE_HISTORY_LIST is probed above (library_symbols): macOS's system libedit
+# lacks history_list, so it must not be set unconditionally.
 php_config_defs.set('PHP_ONIG_BAD_KOI8_ENTRY', 1)
 
 # Policies that were configure options with these defaults.
@@ -974,6 +1026,14 @@ endforeach
 runtime_answers = {
     'linux': {
         'ICONV_BROKEN_IGNORE': 1,          # glibc's //IGNORE silently drops input
+        'ZEND_MM_ALIGNMENT': '(size_t)8',
+        'ZEND_MM_ALIGNMENT_LOG2': '(size_t)3',
+        'ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT': 0,
+    },
+    # macOS is always 64-bit, so the pointer/double/long union is 8-byte aligned
+    # just like linux; unlike glibc, its iconv //IGNORE works, so ICONV_BROKEN_IGNORE
+    # is deliberately absent.
+    'darwin': {
         'ZEND_MM_ALIGNMENT': '(size_t)8',
         'ZEND_MM_ALIGNMENT_LOG2': '(size_t)3',
         'ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT': 0,

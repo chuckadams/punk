@@ -13,6 +13,7 @@ shared_module(
     'sqlite3',
     [ext_sqlite3_sources, sqlite3_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('sqlite3')],

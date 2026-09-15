@@ -42,6 +42,7 @@ if not cli_static_extensions.contains('uri')
         'uri',
         [ext_uri_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : [],
         # annoyingly, doesn't work: we still need to put ext/uri/uriparser/include in the root includes
         include_directories : [includes, 'uriparser/include',],

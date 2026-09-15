@@ -1,5 +1,10 @@
 # user-configurable variables
-prefix := '/opt/punk'
+# The install prefix.  Override it on the command line (`just prefix=/path ...`)
+# or via the PUNK_INSTALL_PREFIX environment variable; it is re-exported as
+# PUNK_INSTALL_PREFIX so every recipe's child process can read it too.
+prefix := env('PUNK_INSTALL_PREFIX', '/opt/punk')
+export PUNK_INSTALL_PREFIX := prefix
+
 nproc := env('NPROC', num_cpus())
 platform := env('PLATFORM')
 sapi := env('BUILD_SAPI', 'cli')

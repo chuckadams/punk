@@ -50,6 +50,7 @@ if not cli_static_extensions.contains('pcre')
         'pcre',
         [ext_pcre_sources],
         name_prefix : '',
+        name_suffix: 'so',
         c_args : ['-DHAVE_CONFIG_H', '-DHAVE_MEMMOVE'],
         include_directories : [includes],
         dependencies : [dependency('libpcre2-8')],

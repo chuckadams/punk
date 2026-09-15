@@ -1,5 +1,4 @@
 main_sources = files(
-    'debug_gdb_scripts.c',
     'explicit_bzero.c',
     'fastcgi.c',
     'fopen_wrappers.c',
@@ -51,6 +50,12 @@ main_sources = files(
     'streams/userspace.c',
     'streams/xp_socket.c',
 )
+
+# debug_gdb_scripts.c embeds the GDB scripts into a .debug_gdb_scripts ELF
+# section, so it only builds on ELF targets (configure.ac's `#if __ELF__` check).
+if cc.get_define('__ELF__') != ''
+    main_sources += files('debug_gdb_scripts.c')
+endif
 
 # internal_functions_cli.c lists the extensions linked into the front-ends.  Both
 # orders matter: the include order follows the extension list and the module

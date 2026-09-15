@@ -54,9 +54,10 @@ shared_module(
     'mbstring',
     [ext_mbstring_sources, mbstring_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : ['-DONIG_ESCAPE_UCHAR_COLLISION=1', '-DUChar=OnigUChar'],
     include_directories : [includes, 'libmbfl', 'libmbfl/mbfl', '.'],
-    dependencies: [dependency('oniguruma')],
+    dependencies: [dependency('oniguruma'), dependency('libpcre2-8')],
     install : true,
 )
 

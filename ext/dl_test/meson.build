@@ -13,6 +13,7 @@ shared_module(
     'dl_test',
     [ext_dl_test_sources, dl_test_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     install : true,

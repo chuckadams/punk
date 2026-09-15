@@ -18,6 +18,7 @@ shared_module(
     'com_dotnet',
     [ext_com_dotnet_sources],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes],
     install : true,

@@ -89,12 +89,22 @@ ext_intl_c_args = [
     '-DUNISTR_FROM_STRING_EXPLICIT=explicit',
 ]
 
+# ICU is keg-only on homebrew, so its include dir has to come from the pkg-config
+# dependency; on Linux it happened to be in the default include path.  Matches
+# PHP_SETUP_ICU's `icu-uc icu-i18n` (homebrew's icu-i18n.pc uses Requires.private
+# for icu-uc, so icu-uc must be requested explicitly).
+ext_intl_deps = [dependency('icu-i18n'), dependency('icu-uc')]
+
+# intl requires C++17 when ICU >= 74 (config.m4's PHP_INTL_STDCXX), which is the
+# case for homebrew's ICU 78; the older Linux ICU only needs C++11.
 ext_intl_objs = static_library(
     'ext_intl_objs',
     ext_intl_sources,
     c_args : ext_intl_c_args,
     cpp_args : ext_intl_c_args,
+    override_options : ['cpp_std=c++17'],
     include_directories : [includes],
+    dependencies : ext_intl_deps,
     build_by_default : false,
 )
 
@@ -103,9 +113,12 @@ if not cli_static_extensions.contains('intl')
         'intl',
         [ext_intl_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : ext_intl_c_args,
         cpp_args : ext_intl_c_args,
+        override_options : ['cpp_std=c++17'],
         include_directories : [includes],
+        dependencies : ext_intl_deps,
         install : true,
     )
 endif

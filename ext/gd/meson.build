@@ -84,6 +84,7 @@ shared_module(
     'gd',
     [ext_gd_sources, gd_arginfo_gen[0]],
     name_prefix : '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, 'libgd', 'libgd/ftraster', '.'],
     dependencies : [

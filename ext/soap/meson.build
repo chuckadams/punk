@@ -19,6 +19,7 @@ shared_module(
     'soap',
     [ext_soap_sources, soap_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0')],

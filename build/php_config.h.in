@@ -20,6 +20,13 @@
 # define _GNU_SOURCE 1
 #endif
 
+/* macOS extensions: pthread_main_np, and ucontext behind _XOPEN_SOURCE. */
+#ifdef __APPLE__
+# ifndef _DARWIN_C_SOURCE
+#  define _DARWIN_C_SOURCE 1
+# endif
+#endif
+
 #if defined(__GNUC__) && __GNUC__ >= 4
 # define ZEND_API __attribute__ ((visibility("default")))
 # define ZEND_DLEXPORT __attribute__ ((visibility("default")))

@@ -49,6 +49,7 @@ shared_module(
     'dom',
     [ext_dom_sources, php_dom_arginfo_gen[0], php_dom_arginfo_gen[1]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0')],

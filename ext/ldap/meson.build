@@ -13,6 +13,7 @@ shared_module(
     'ldap',
     [ext_ldap_sources, ldap_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('ldap'), dependency('lber')],

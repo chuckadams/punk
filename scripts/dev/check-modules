@@ -25,9 +25,19 @@ fi
 
 modules=()
 args=()
-for so in $(find "$build_dir/ext" -name '*.so' | sort); do
-    modules+=("$(basename "$so" .so)")
-    args+=(-d "extension=$so")
+# Modules are always named .so (shared_module uses name_suffix: 'so'), but the
+# eager-binding switch differs: DYLD_BIND_AT_LAUNCH on macOS, LD_BIND_NOW on ELF.
+if [ "$(uname -s)" = "Darwin" ]; then
+    bind_env=(env DYLD_BIND_AT_LAUNCH=1)
+else
+    bind_env=(env LD_BIND_NOW=1)
+fi
+# LC_ALL=C forces byte-wise ordering so 'pdo' sorts before 'pdo_mysql' etc.;
+# a locale-aware sort (the macOS default) compares '/' and '_' by collation and
+# would load the pdo drivers before the pdo extension they depend on.
+for mod in $(find "$build_dir/ext" -name '*.so' | LC_ALL=C sort); do
+    modules+=("$(basename "$mod" .so)")
+    args+=(-d "extension=$mod")
 done
 
 if [ ${#modules[@]} -eq 0 ]; then
@@ -35,10 +45,10 @@ if [ ${#modules[@]} -eq 0 ]; then
     exit 1
 fi
 
-# LD_BIND_NOW forces every symbol to resolve at dlopen time. Without it, a
+# Eager binding forces every symbol to resolve at dlopen time. Without it, a
 # missing library is only noticed when the module first calls into it, so a
 # module could pass this check and still blow up later.
-out=$(LD_BIND_NOW=1 "$binary" -n "${args[@]}" \
+out=$("${bind_env[@]}" "$binary" -n "${args[@]}" \
     -r 'echo implode("\n", get_loaded_extensions());' 2>&1 || true)
 
 loaded=$(printf '%s\n' "$out" | tr '[:upper:]' '[:lower:]' | sed 's/^zend //')

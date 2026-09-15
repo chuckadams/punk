@@ -198,6 +198,7 @@ if not cli_static_extensions.contains('lexbor')
         'lexbor',
         [ext_lexbor_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : [],
         include_directories : [includes],
         install : true,

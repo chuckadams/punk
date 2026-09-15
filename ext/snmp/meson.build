@@ -13,8 +13,9 @@ shared_module(
     'snmp',
     [ext_snmp_sources, snmp_arginfo_gen[0], snmp_arginfo_gen[1]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
-    dependencies: [dependency('netsnmp')],
+    dependencies: [dependency('netsnmp'), dependency('openssl')],
     install : true,
 )

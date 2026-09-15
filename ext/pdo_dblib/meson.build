@@ -8,6 +8,7 @@ shared_module(
     'pdo_dblib',
     [ext_pdo_dblib_sources],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes],
     dependencies: [],

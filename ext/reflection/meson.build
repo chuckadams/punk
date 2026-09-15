@@ -9,6 +9,7 @@ if not cli_static_extensions.contains('reflection')
         'reflection',
         [ext_reflection_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args: [],
         include_directories : [includes],
         install : true,

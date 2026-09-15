@@ -16,6 +16,7 @@ shared_module(
     'tidy',
     [ext_tidy_sources, tidy_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.', ext_tidy_extra_includes],
     dependencies: [dependency('tidy')],

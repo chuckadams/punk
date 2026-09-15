@@ -24,6 +24,7 @@ shared_module(
     # headers as sources makes ninja build the generators first.
     [ext_tokenizer_sources, zend_language_parser_gen[1], zend_language_scanner_gen[1], tokenizer_data_arginfo_gen[0], tokenizer_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [],

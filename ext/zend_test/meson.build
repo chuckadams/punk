@@ -46,6 +46,7 @@ shared_module(
     'zend_test',
     [ext_zend_test_sources, tmp_methods_arginfo_gen[0], object_handlers_arginfo_gen[0], fiber_arginfo_gen[0], test_arginfo_gen[0], test_arginfo_gen[1], test_arginfo_gen[2], iterators_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0')],

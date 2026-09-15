@@ -29,9 +29,10 @@ shared_module(
     'phar',
     [ext_phar_sources, phar_object_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
-    dependencies: [],
+    dependencies: [dependency('openssl')],
     install : true,
 )
 

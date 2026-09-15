@@ -8,6 +8,7 @@ shared_module(
     'pdo_odbc',
     [ext_pdo_odbc_sources],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes],
     dependencies: [dependency('libiodbc')],

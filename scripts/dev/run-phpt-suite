@@ -55,7 +55,7 @@ if [ "$(basename "$binary_dir")" = cli ] && [ "$(basename "$(dirname "$binary_di
     find "$ext_dir" -maxdepth 1 -name '*.so' -delete
     while IFS= read -r so; do
         ln -sf "$so" "$ext_dir/$(basename "$so")"
-    done < <(find "$build_dir/ext" -name '*.so' | sort)
+    done < <(find "$build_dir/ext" -name '*.so' | LC_ALL=C sort)
 
     # The compiled-in extension_dir is the install prefix, which is not where
     # these modules are, so tests that load an extension by name need telling.
@@ -75,13 +75,16 @@ builtin_modules=$("$binary" -n -r 'echo implode("\n", get_loaded_extensions());'
     | tr '[:upper:]' '[:lower:]' | sed 's/^zend //')
 
 module_args=()
-shopt -s nullglob
-for so in "$ext_dir"/*.so; do
+# LC_ALL=C forces byte-wise ordering so a dependency sorts before its consumers
+# ('pdo' before 'pdo_mysql', 'dom' before 'xmlreader').  A locale-aware sort (the
+# macOS default) compares '/' and '_' by collation and loads them backwards; the
+# startup warnings that produces then fail every test.
+while IFS= read -r so; do
     name=$(basename "$so" .so)
     [ "$name" = dl_test ] && continue
     grep -qx "$name" <<<"$builtin_modules" && continue
     module_args+=(-d "extension=$so")
-done
+done < <(find "$ext_dir" -maxdepth 1 -name '*.so' | LC_ALL=C sort)
 
 if [ ${#module_args[@]} -eq 0 ]; then
     echo "run-phpt-suite: no shared modules found in $ext_dir" >&2

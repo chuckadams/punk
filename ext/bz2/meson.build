@@ -14,6 +14,7 @@ shared_module(
     'bz2',
     [ext_bz2_sources, bz2_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies : [dependency('bzip2')],

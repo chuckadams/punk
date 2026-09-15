@@ -25,6 +25,7 @@ shared_module(
     # sources that #include them
     [ext_curl_sources, curl_arginfo_gen[0], curl_file_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies : [dependency('libcurl')],

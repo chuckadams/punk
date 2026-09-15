@@ -29,6 +29,7 @@ if not cli_static_extensions.contains('opcache')
         'opcache',
         [ext_opcache_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : [],
         include_directories : [includes],
         install : true,

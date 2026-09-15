@@ -28,6 +28,7 @@ if not cli_static_extensions.contains('mysqlnd')
         'mysqlnd',
         [ext_mysqlnd_sources],
         name_prefix : '',
+        name_suffix: 'so',
         c_args : [],
         include_directories : [includes],
         install : true,

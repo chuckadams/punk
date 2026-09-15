@@ -36,6 +36,7 @@ shared_module(
     'bcmath',
     [ext_bcmath_sources, bcmath_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     install : true,

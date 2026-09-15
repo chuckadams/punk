@@ -13,6 +13,7 @@ shared_module(
     'sysvmsg',
     [ext_sysvmsg_sources, sysvmsg_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [],

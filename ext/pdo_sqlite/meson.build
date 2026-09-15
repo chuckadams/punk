@@ -31,6 +31,7 @@ shared_module(
     'pdo_sqlite',
     [ext_pdo_sqlite_sources, pdo_sqlite_arginfo_gen[0], sqlite_driver_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('sqlite3')],

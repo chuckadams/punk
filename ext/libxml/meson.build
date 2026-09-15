@@ -11,6 +11,7 @@ if not cli_static_extensions.contains('libxml')
         'libxml',
         [ext_libxml_sources],
         name_prefix: '',
+        name_suffix: 'so',
         c_args : [],
         include_directories : [includes],
         dependencies: [dependency('libxml-2.0')],

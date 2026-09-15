@@ -14,6 +14,7 @@ shared_module(
     'xsl',
     [ext_xsl_sources, php_xsl_arginfo_gen[0]],
     name_prefix: '',
+    name_suffix: 'so',
     c_args : [],
     include_directories : [includes, '.'],
     dependencies: [dependency('libxml-2.0'), dependency('libxslt'), dependency('libexslt')],

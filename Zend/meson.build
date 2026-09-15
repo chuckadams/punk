@@ -177,7 +177,12 @@ zend_objs = static_library(
     zend_ini_scanner_gen[0],
     zend_language_parser_gen[0],
     zend_language_scanner_gen[0],
-    zend_vm_gen[1],
+    # The VM headers are listed (not just the generated .c) so every object in
+    # this library is ordered after zend_vm_gen: zend_execute.c and
+    # zend_generators.c #include zend_vm_execute.h, and zend_compile.h
+    # #includes zend_vm_opcodes.h, so compiling before the generator runs reads
+    # a half-written header.
+    zend_vm_gen[0], zend_vm_gen[1], zend_vm_gen[2], zend_vm_gen[3],
     zend_attributes_arginfo_gen[0],
     zend_builtin_functions_arginfo_gen[0],
     zend_closures_arginfo_gen[0],

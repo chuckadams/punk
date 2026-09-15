@@ -85,8 +85,15 @@ case "$("$php_config" --configure-options)" in
 *'zts=true'*) zts="-DZTS=1" ;;
 esac
 
+# A loadable module keeps its PHP symbols undefined until dlopen, so the link
+# flags differ: ELF wants -shared -fPIC while Mach-O wants a bundle that defers
+# undefined symbols (-bundle -undefined dynamic_lookup).
+case "$(uname -s)" in
+    Darwin) shared="-bundle -undefined dynamic_lookup" ;;
+    *)      shared="-shared -fPIC" ;;
+esac
 # shellcheck disable=SC2086
-${CC:-cc} -shared -fPIC -DCOMPILE_DL_PUNK_TEST=1 $zts $includes \
+${CC:-cc} $shared -DCOMPILE_DL_PUNK_TEST=1 $zts $includes \
     "$work/punk_test.c" -o "$work/punk_test.so" \
     || fail "compiling against the installed headers failed"
 out=$("$punk" -n -d "extension=$work/punk_test.so" -r 'echo punk_test_hello(), "\n";')
