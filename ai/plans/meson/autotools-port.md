@@ -4,12 +4,13 @@ Goal: `php_config.h` and every other configure output come from meson, every m4
 file is deleted, and logic that lived in m4 moves to meson or to support scripts
 in bash/python.
 
-Status: **phases 1-5 done.**  Meson generates the config header (`just
-compare-config` reports no differences; 445 symbols here against autoconf's 449,
-the difference being five deliberate omissions the comparison tool records) and
-four of the five other artifacts autoconf used to produce.  What is left is
-`scripts/php-config` and the man pages, then the switch-over and the deletion
-(phase 6).
+Status: **phases 1-6 done, and the addendum below is implemented.**  Meson
+generates the config header (445 symbols here against autoconf's 449, the
+difference being five deliberate omissions the comparison tool records) and
+every other artifact autoconf used to produce, the m4 stack is gone from this
+tree, and `phpize` ships what it needs as an installed payload.  The autoconf
+oracle was retired on purpose (see the addendum); the comparison numbers above
+are the last ones taken before that.
 
 ## Where configuration belongs in meson
 
@@ -359,6 +360,17 @@ regardless).
   behind an `is_cross_build()` check; punk has no cross targets yet.
 
 # Addendum: phpize ships as an installed payload
+
+**Implemented.**  Three commits: the addendum itself ("Settle the phpize
+question"), the payload and its gate ("Install phpize and the autoconf payload
+it copies"), and the deletion ("Delete the autoconf build; phpize keeps what it
+needs").  What follows is the reasoning as it was written before the work, kept
+because it is what the shape of the result is argued from.
+
+Verified on `aarch64-linux-gnu` from a wiped build directory: `just meson`
+(setup, compile, 20845 of 23424 tests passing with the same twelve pre-existing
+failures, install, `check-phpize`), then `check-install` and `check-modules`
+loading all 50 modules.
 
 Phase 6's deletion list assumed the m4 stack dies whole.  It does not have to.
 `phpize` is cheap to keep -- the cost is one install rule, not the plan's goal --
