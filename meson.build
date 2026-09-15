@@ -286,5 +286,8 @@ punk_frontend_link_whole = [
 ]
 
 subdir('scripts')
+# sapi/embed reuses sapi/cli's shared sources and its generated arginfo, so it
+# has to come after it.
 subdir('sapi/cli')
 subdir('sapi/cgi')
+subdir('sapi/embed')
