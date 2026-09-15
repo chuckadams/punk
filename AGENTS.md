@@ -26,7 +26,7 @@ Fork-only C code should be guarded by the `PUNK` / `PUNK_MESON` macros that meso
 | `sapi/` | SAPI modules; `cli`, `cgi`, `embed`, `fpm`, `phpdbg` and `fuzzer` have meson builds, the rest are upstream-only so far |
 | `tests/`, `ext/*/tests/`, `Zend/tests/` | `.phpt` tests (~22.5k), run by `run-tests.php` |
 | `build/` | what `phpize` installs and copies into third-party extensions (`php.m4`, the libtool/pkg/ax macros, `Makefile.global`, `shtool`, `config.guess`/`config.sub`, `gen_stub.php`, the vendored `PHP-Parser-5.6.1`), plus the meson port of `configure.ac` in `build/meson.build`, the tracked header templates (`php_config.h.in`, `build-defs.h.in`) and the generation helpers `gen-stub.sh` / `gen-zend-vm.sh` / `gen-language-parser.sh` |
-| `scripts/dev/` | upstream dev helpers plus punk's gates (`check-install`, `check-modules`, `check-phpize`), `run-phpt-suite`, and `ac_converter.py`, left over from the port; `scripts/gdb/php_gdb.py` for gdb |
+| `scripts/dev/` | upstream dev helpers plus punk's gates (`check-install`, `check-modules`, `check-phpize`) and `run-phpt-suite`; `scripts/gdb/php_gdb.py` for gdb |
 | `docs/`, `docs-old/` | internals documentation: Sphinx sources in `docs/source`, older markdown docs (streams, output API, input filters, parameter parsing, self-contained extensions) in `docs-old/` |
 | `win32/`, `pear/`, `benchmark/` | upstream-only paths, not part of any punk workflow yet |
 
