@@ -1,8 +1,7 @@
 # phpdbg, the interactive debugger.  It is the only front-end that carries a
 # command language of its own, so it also carries a lexer and a parser that re2c
-# and bison generate.  `just generate` does not cover them for autoconf --
-# sapi/phpdbg/Makefile.frag does, driven by scripts/dev/genfiles -- and that is
-# the invocation reproduced here, flags included.
+# and bison generate.  The autoconf build drove them from a Makefile fragment;
+# this is the same invocation, flags included.
 re2c = find_program('re2c')
 bison = find_program('bison')
 

@@ -683,12 +683,12 @@ if not get_option('fiber-asm')
     php_config_defs.set('ZEND_FIBER_UCONTEXT', 1)
     if host_machine.system() == 'darwin'
         # macOS exposes getcontext/makecontext/swapcontext in ucontext.h only
-        # behind _XOPEN_SOURCE (configure.ac's fiber_os == 'mac' branch).
+        # behind _XOPEN_SOURCE (the autoconf build's fiber_os == 'mac' branch).
         php_config_defs.set('_XOPEN_SOURCE', 1)
     endif
 endif
-# Zend/Zend.m4 defines these by default: signals when sigaction exists, and the
-# stack limit check unless --disable-zend-check-stack-limit is given.
+# The autoconf build defined these by default: signals when sigaction exists,
+# and the stack limit check unless --disable-zend-check-stack-limit is given.
 php_config_defs.set('ZEND_SIGNALS', 1)
 php_config_defs.set('ZEND_CHECK_STACK_LIMIT', 1)
 
@@ -1347,18 +1347,15 @@ endif
 
 # HAVE_PHPDBG_READLINE is deliberately left undefined, so phpdbg's interactive
 # prompt reads a line at a time instead.  --enable-phpdbg-readline defaults to no
-# in config.m4, platform/_common/configure-cli does not override it and upstream's
-# CI passes a bare --enable-phpdbg, so this is the reference configuration.
-# Punk does link libedit into every front-end, so enabling it is a one-line
-# change if someone wants it; it is off because the reference build has it off.
+# in sapi/phpdbg/config.m4 and upstream's CI passes a bare --enable-phpdbg, so
+# this is the reference configuration.  Punk does link libedit into every
+# front-end, so enabling it is a one-line change if someone wants it; it is off
+# because the reference build has it off.
 
 # ---- deliberately not ported ----------------------------------------------
 # LT_OBJDIR, STDC_HEADERS       libtool and pre-C89 leftovers
 # HAVE_PRESERVE_NONE            unused
 # HAVE_DECL_P_JAILID            FreeBSD only
-# HAVE_USERFAULTFD_WRITEFAULT   phpdbg, which punk does not build
-# scripts/dev/compare-config-headers knows about these, so `just compare-config`
-# still reads as a completion gate.
 
 # The header itself is written by main/meson.build, so that it lands in the
 # build's main/ directory: Zend/zend_config.h includes <../main/php_config.h>,

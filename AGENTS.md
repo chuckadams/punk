@@ -3,8 +3,9 @@
 Punk is an experimental fork of [php-src](https://github.com/php/php-src): PHP 8.6.0-dev / Zend Engine
 4.6.0-dev (API 20250926), tracking upstream `master`, which is merged in periodically. **No changes to PHP
 itself exist yet** — the entire diff against upstream is the build tooling described below. The point of the
-fork is to make future language changes fast to iterate on, and the current work is replacing autoconf with
-meson to get there.
+fork is to make future language changes fast to iterate on; replacing autoconf with meson is what got there.
+What is left of the m4 stack is a payload that `phpize` installs and copies, so third-party extensions still
+build the autoconf way while punk itself does not use autoconf at all.
 
 Fork-only C code should be guarded by the `PUNK` / `PUNK_MESON` macros that meson defines project-wide
 (today's only use: `Zend/zend_operators.h` disables `memrchr` under `PUNK_MESON`).
@@ -17,15 +18,15 @@ Fork-only C code should be guarded by the `PUNK` / `PUNK_MESON` macros that meso
 | path | contents |
 |---|---|
 | `justfile` | the only build entry point; dispatches to `platform/$PLATFORM` |
-| `platform/` | per-target-triple build environments (`.env`, `shell`, `Dockerfile`, `docker-compose.yml`, `configure`) plus shared `_common/configure-cli` autotools flags |
+| `platform/` | per-target-triple build environments (`.env`, `shell`, `Dockerfile`, `docker-compose.yml`); the configure flags that used to live here and in a shared `_common/configure-cli` are meson options now |
 | `Zend/` | the engine: compiler (`zend_compile.c`, `zend_language_parser.y`), VM (`zend_vm_def.h` → generated `zend_vm_execute.h`), runtime, `Optimizer/`, `zend_vm_gen.php` |
 | `main/` | SAPI-independent runtime: request/ini/output/streams, `php.h`, `php_config.h` (generated) |
 | `TSRM/` | thread-safety / ZTS layer — punk builds ZTS by default |
-| `ext/` | bundled extensions, one dir per extension with `config.m4` *and* `meson.build`; `ext/opcache/Jit/` holds the (currently disabled) JIT |
+| `ext/` | bundled extensions, one dir per extension with a `meson.build` (the build) and a `config.m4` (upstream's, no longer read by anything here but kept as the reference the `meson.build` is checked against); `ext/opcache/Jit/` holds the (currently disabled) JIT |
 | `sapi/` | SAPI modules; `cli`, `cgi`, `embed`, `fpm`, `phpdbg` and `fuzzer` have meson builds, the rest are upstream-only so far |
 | `tests/`, `ext/*/tests/`, `Zend/tests/` | `.phpt` tests (~22.5k), run by `run-tests.php` |
-| `build/` | autotools m4 macros, `buildconf`, `gen_stub.php`, `Makefile.global`; `build/regenerate` regenerates lexers/parsers/VM; `build/configure.meson` is the WIP meson port of `configure.ac` |
-| `scripts/dev/` | upstream dev helpers plus `ac_converter.py` (WIP autoconf→meson converter); `scripts/gdb/php_gdb.py` for gdb |
+| `build/` | what `phpize` installs and copies into third-party extensions (`php.m4`, the libtool/pkg/ax macros, `Makefile.global`, `shtool`, `config.guess`/`config.sub`, `gen_stub.php`, the vendored `PHP-Parser-5.6.1`), plus the meson port of `configure.ac` in `build/meson.build`, the tracked header templates (`php_config.h.in`, `build-defs.h.in`) and the generation helpers `gen-stub.sh` / `gen-zend-vm.sh` / `gen-language-parser.sh` |
+| `scripts/dev/` | upstream dev helpers plus punk's gates (`check-install`, `check-modules`, `check-phpize`), `run-phpt-suite`, and `ac_converter.py`, left over from the port; `scripts/gdb/php_gdb.py` for gdb |
 | `docs/`, `docs-old/` | internals documentation: Sphinx sources in `docs/source`, older markdown docs (streams, output API, input filters, parameter parsing, self-contained extensions) in `docs-old/` |
 | `win32/`, `pear/`, `benchmark/` | upstream-only paths, not part of any punk workflow yet |
 
@@ -36,28 +37,26 @@ Every build goes through the root `justfile`, which requires `PLATFORM` to name 
 make or the platform shell script directly** — if a task has no recipe, add one to the `justfile` instead of
 working around it.
 
-Configuration and building are deliberately separate steps, and there are two independent configurations:
+There is one configuration, and it is meson's. `just _meson-setup` wipes the build directory and runs
+`meson setup`, which does every check and writes every generated header into the build directory:
+`main/php_config.h`, `Zend/zend_config.h`, `main/build-defs.h`, `ext/date/lib/timelib_config.h` and
+`ext/mbstring/libmbfl/config.h`. Nothing lands in the source tree, so there is no separate configure step to
+run and `meson configure` edits the stored options in place. `just meson` runs the whole chain — setup,
+compile, the `.phpt` suite, install, then the phpize gate — and `just meson-rebuild` recompiles in place
+without wiping or installing.
 
-- `just configure` is the autotools one (`buildconf` plus the platform's `configure`). It writes the config
-  headers into the source tree and produces the `Makefile`s `just make`/`just test`/`just all` use.
-- `just _meson-setup` is the meson one (wipe the build directory, then `meson setup`); it runs its own checks
-  and generates its own copies of every config header into the build directory, so it borrows nothing from
-  autoconf. `just meson` builds and installs from that state, `just meson-rebuild` rebuilds in place.
-
-The autoconf chain stays until phpize has been dealt with, so the two have to keep working side by side;
-`just compare-config` (and a warning at meson setup time) reports it if their configuration headers ever stop
-agreeing.
+The autoconf build is gone: no `configure.ac`, no `buildconf`, no tree-side `build/*.m4`, no `Makefile.global`
+driving anything here, and no `platform/*/configure`. What survives of the m4 stack is the payload phpize
+ships to third-party extension authors — see "phpize and third-party extensions" below.
 
 ```sh
-PLATFORM=aarch64-linux-gnu just configure       # autotools configuration (writes the source-tree config headers)
-PLATFORM=aarch64-linux-gnu just _meson-setup    # meson configuration (owns the build dir; no autoconf needed)
-PLATFORM=aarch64-linux-gnu just meson           # meson: setup, compile, test, install (wipes build dir + prefix)
+PLATFORM=aarch64-linux-gnu just _meson-setup    # meson configuration (owns the build dir)
+PLATFORM=aarch64-linux-gnu just meson           # setup, compile, test, install, check-phpize (wipes build dir + prefix)
 PLATFORM=aarch64-linux-gnu just meson-rebuild   # rebuild in place (no wipe, no install)
 PLATFORM=aarch64-linux-gnu just fuzzer          # the Clang fuzzing SAPI, in a build dir of its own
 PLATFORM=aarch64-linux-gnu just check-modules   # load every built module, report the ones that fail
 PLATFORM=aarch64-linux-gnu just check-install   # php-config + installed headers: build an out-of-tree module against them
-PLATFORM=aarch64-linux-gnu just compare-config  # diff autoconf's php_config.h against meson's
-PLATFORM=aarch64-linux-gnu just all             # autotools: clean, configure, generate, make, install, test
+PLATFORM=aarch64-linux-gnu just check-phpize    # phpize + payload: build a third-party extension the autoconf way
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt   # .phpt suite, or one file/directory
 PLATFORM=aarch64-linux-gnu just test-installed  # .phpt suite against the installed binaries
 PLATFORM=aarch64-linux-gnu just shell           # interactive shell in the platform environment
@@ -65,44 +64,44 @@ PLATFORM=aarch64-linux-gnu just build-image     # rebuild the platform's docker 
 ```
 
 `just --list` shows the public recipes; `_`-prefixed recipes (`_meson-setup`, `_meson-compile`,
-`_meson-test`, `_meson-install`, `_fuzzer-setup`, `_fuzzer-compile`, `_wipe-build`, `_wipe-fuzzer-build`,
-`_wipe-install`) are pieces called by the others, and are all runnable on their own. `just clean` deletes the
-autotools output *and* every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/` — including
-the generated sources and config headers, so a rebuild after `just clean` needs `just configure` (re-creates
-the headers) and `just meson` (re-creates the sources). A meson-only tree needs neither `just configure` nor
-`just generate`: re2c, bison and the VM all run inside the build, and the config headers are generated by
-meson. The fuzzer's build directory is `<platform>/.meson-build-fuzzer`, alongside the authoritative
-`.meson-build`; `_wipe-fuzzer-build` is what removes it.
+`_meson-install`, `_fuzzer-setup`, `_fuzzer-compile`, `_wipe-build`, `_wipe-fuzzer-build`, `_wipe-install`)
+are pieces called by the others, and are all runnable on their own. `just clean` removes build leftovers and
+every ignored file under `ext/ main/ sapi/ TSRM/ Zend/ scripts/ tests/`; meson regenerates all of it, so a
+rebuild after `just clean` is just `just meson`. The fuzzer's build directory is
+`<platform>/.meson-build-fuzzer`, alongside the authoritative `.meson-build`; `_wipe-fuzzer-build` is what
+removes it.
 
 | platform | how it runs |
 |---|---|
 | `aarch64-linux-gnu` | The only working platform. Runs everything in docker compose: Debian forky image with clang+ccache, meson, just, re2c/bison and every extension's `-dev` library; repo mounted at `/punk`, `/opt/punk` (install prefix) and `/ccache` on named volumes. |
-| `aarch64-apple-darwin` | Native macOS (`platform/<plat>/shell` sources `.env` and execs on the host, no docker). Builds against homebrew (`ccache` + homebrew LLVM from `/opt/homebrew/opt/llvm/bin`, since Xcode's tools demand an accepted license); `just meson` works end to end — compile, `_meson-test`, install, `check-modules`, `check-install`. There is no writable `/opt` on the host, so drive it with `just prefix=/tmp/opt/punk …` (or `PUNK_INSTALL_PREFIX`). |
+| `aarch64-apple-darwin` | Native macOS (`platform/<plat>/shell` sources `.env` and execs on the host, no docker). Builds against homebrew (`ccache` + homebrew LLVM from `/opt/homebrew/opt/llvm/bin`, since Xcode's tools demand an accepted license); `just meson` works end to end — compile, `just test`, install, `check-modules`, `check-install`, `check-phpize`. There is no writable `/opt` on the host, so drive it with `just prefix=/tmp/opt/punk …` (or `PUNK_INSTALL_PREFIX`). |
 
 - `platform/<triple>/.env` is git-ignored — copy `.env.example` on a fresh clone. It supplies `CC`/`CXX`
-  (`ccache clang`), `NPROC`, `SKIP_SLOW_TESTS=1` and `TEST_PHP_ARGS` (consumed by `run-tests.php`), and it is
-  what the container gets via compose `env_file`. On the host, `PLATFORM` must be passed explicitly (direnv
-  with the platform `.envrc` is a convenience); `NPROC` falls back to the host CPU count when running just
-  outside the container. `BUILD_SAPI` is vestigial: the `justfile` reads it into an unused variable, and
-  neither build consults it — the autotools flags in `platform/_common/configure-cli` pick the SAPIs, and the
-  meson build builds all five front-ends (cli, cgi, embed, fpm, phpdbg) unconditionally. The fuzzer SAPI is
-  the exception: it is off unless `-Dfuzzer=true`, and then it wants a build directory of its own (see
-  `just fuzzer` below).
+  (`ccache clang`), `SKIP_SLOW_TESTS=1` and `TEST_PHP_ARGS` (consumed by `run-tests.php`), plus whatever the
+  platform needs on `PATH`/`PKG_CONFIG_PATH`, and it is what the container gets via compose `env_file`. On
+  the host, `PLATFORM` must be passed explicitly (direnv with the platform `.envrc` is a convenience).
+  `NPROC` and `BUILD_SAPI` are left over from the autotools recipes and nothing reads them any more: meson
+  builds all five front-ends (cli, cgi, embed, fpm, phpdbg) unconditionally and does its own parallelism.
+  The fuzzer SAPI is the exception, off unless `-Dfuzzer=true` and then wanting a build directory of its own
+  (see `just fuzzer` below).
 - `just shell` opens a shell in the platform environment (the underlying `platform/<triple>/shell` wrapper is
   what `just` runs every recipe through; it execs directly when docker is unavailable, i.e. inside the
   container). Image changes need `just build-image`, which runs on the host — an image cannot be rebuilt from
-  inside itself. A `punk-builder` service exists whose entrypoint is `just all`, for one-shot builds.
-- `/opt/punk` is a docker volume, not a host path — run the installed `punk` binary from `just shell`. The two
-  build paths install over each other in that same prefix.
+  inside itself. A `punk-builder` service exists whose entrypoint is `just meson`, for one-shot builds.
+- The container image keeps `autoconf`, `autoheader` and `make` even though punk's own build no longer uses
+  them: `just check-phpize` needs them, and so does anyone building an extension against the install.
+- `/opt/punk` is a docker volume, not a host path — run the installed `punk` binary from `just shell`.
 
-## The meson port (the active work)
+## The meson build
 
-`meson.build` is a per-directory hand port of `configure.ac` + the `config.m4` files. Conventions:
+`meson.build` is a per-directory hand port of what `configure.ac` and the `config.m4` files used to do. With
+autoconf gone, `meson.build` is the only description of the build; the `config.m4` files stay as the
+reference it was ported from. Conventions:
 
 - Each extension declares `ext_<name>_sources = files(...)` and then a `shared_module('name', …,
   name_prefix: '', install: true)` plus `install_headers(..., subdir: 'php/ext/<name>')`. Anything the CLI links
   in also gets an `ext_<name>_objs = static_library(..., build_by_default: false)`. Header lists are explicit
-  (meson has no glob) and must match what `config.m4` declared: `configure.ac` names `Zend/ TSRM/ main/
+  (meson has no glob) and must match what `config.m4` declared: the install lists name `Zend/ TSRM/ main/
   main/streams/ ext/standard/ ext/mysqlnd/ ext/gd/libgd/` without a file list, so *every* `.h` in those
   directories is installed, while everything else is named file by file.
 - The root `meson.build` lists every extension with an explicit `subdir()` call; there is **no feature
@@ -110,7 +109,7 @@ meson. The fuzzer's build directory is `<platform>/.meson-build-fuzzer`, alongsi
   platform image must supply every library.
 - Per-extension *defines* from `config.m4` are just as load-bearing as the source lists, and a missing one
   fails silently. `ext/date` is the cautionary example: `timelib.h` tests `HAVE_TIMELIB_CONFIG_H` before
-  anything has included `php_config.h`, so config0.m4 passes it on the command line; without it
+  anything has included `php_config.h`, so `ext/date/meson.build` passes it on the command line; without it
   `timelib_config.h` is skipped, timelib allocates with `malloc` while PHP frees with `efree`, and every
   interval/`DateTime` code path corrupts the heap.
 - `sapi/cli/meson.build` builds the executable **`punk`** and `sapi/cgi/meson.build` builds **`php-cgi`**;
@@ -141,16 +140,14 @@ meson. The fuzzer's build directory is `<platform>/.meson-build-fuzzer`, alongsi
 - `sapi/phpdbg/meson.build` builds **`phpdbg`**, the interactive debugger. It is the one front-end with a
   command language of its own, so it is also the only one that generates a lexer and a parser: re2c and bison
   run as `custom_target`s, and both are listed as sources of the executable, which is what orders them before
-  the generated lexer is compiled against the generated parser header. `build/regenerate` grew the matching
-  two commands (with `-F` for flex syntax and `-i` to leave `#line` out, the flags `scripts/dev/genfiles`
-  asks re2c for through `sapi/phpdbg/Makefile.frag`), so `just generate` and meson now produce the same files
-  and the usual "identical apart from `#line` paths" check holds. Its `phpdbg.stub.php` produces the arginfo
-  headers for the `phpdbg_*()` functions, and `phpdbg.1.in` is configured from meson's `PHP_VERSION`. Of the
-  two symbols config.m4 contributes, `HAVE_USERFAULTFD_WRITEFAULT` (what its write watchpoints use) is probed
-  from `linux/userfaultfd.h` under the ZTS default, while `HAVE_PHPDBG_READLINE` is deliberately left
-  undefined: `--enable-phpdbg-readline` defaults to no in config.m4, configure-cli does not override it and
-  upstream's CI passes a bare `--enable-phpdbg`, so phpdbg's prompt reads a line at a time in the reference
-  build too. Punk links libedit into every front-end, so turning it on is a one-line change.
+  the generated lexer is compiled against the generated parser header. The flags are the ones the autoconf
+  build's Makefile fragment asked re2c for (`-F` for flex syntax, `-i` to leave `#line` out). Its
+  `phpdbg.stub.php` produces the arginfo headers for the `phpdbg_*()` functions, and `phpdbg.1.in` is
+  configured from meson's `PHP_VERSION`. Of the two symbols `sapi/phpdbg/config.m4` contributes,
+  `HAVE_USERFAULTFD_WRITEFAULT` (what its write watchpoints use) is probed from `linux/userfaultfd.h` under
+  the ZTS default, while `HAVE_PHPDBG_READLINE` is deliberately left undefined: `--enable-phpdbg-readline`
+  defaults to no and upstream's CI passes a bare `--enable-phpdbg`, so phpdbg's prompt reads a line at a time
+  in the reference build too. Punk links libedit into every front-end, so turning it on is a one-line change.
 - `sapi/fuzzer/meson.build` builds the **fuzzing SAPI** (upstream's `--enable-fuzzer`): `fuzzer-sapi.c`
   plus one `LLVMFuzzerTestOneInput` per fuzzer, each linked into its own binary. It is the only directory the
   root `meson.build` enters conditionally, because it is not a front-end punk ships but a target set that
@@ -199,40 +196,65 @@ meson. The fuzzer's build directory is `<platform>/.meson-build-fuzzer`, alongsi
 
 Known gaps, in rough priority order:
 
-1. **The m4 stack is still there, for phpize.** meson no longer borrows anything from autoconf — it generates
-   every config header and every re2c/bison/VM source itself — but `just configure`/`make`/`test`/`all`
-   remain as the autotools path, and `config.m4` + `phpize` have no meson equivalent yet. Deleting
-   `configure.ac`, the `build/*.m4` files, `buildconf` and `Makefile.global` waits on that.
-2. Source lists in `meson.build` are hand-copied from `config.m4` and drift: `ext/gd` was ~25 files behind
-   (including the whole newer libgd drawing/path API) and `ext/zip` was missing `zip_source.c`. Both surface
-   as undefined symbols at load time rather than as build errors, which is what `just check-modules` is for —
-   compare against `config.m4` when touching an extension.
-3. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name, which does not work for
+1. **`config.m4` and `meson.build` can drift, and nothing checks it.** The `config.m4` files are no longer
+   read by anything, so an upstream change to one is invisible until someone compares it by hand. Source
+   lists have drifted before: `ext/gd` was ~25 files behind (including the whole newer libgd drawing/path
+   API) and `ext/zip` was missing `zip_source.c`. Drift surfaces as undefined symbols at load time rather
+   than as build errors, which is what `just check-modules` is for — compare against `config.m4` when
+   touching an extension, and when an upstream merge brings one in.
+2. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name, which does not work for
    a binary called `punk`: `get_binary()` substitutes "php" for the sapi in that name, and `punk` contains no
    "php", so it now refuses to return the tested binary rather than let it pass as its own cgi or phpdbg.
    Those tests therefore skip, and `scripts/dev/run-phpt-suite` exports `TEST_PHP_CGI_EXECUTABLE` and
    `TEST_PHPDBG_EXECUTABLE` to fill the gap — the build tree's layout happens to satisfy `get_binary()`'s
    source-tree probe, an install's does not. That is a fork-only change to an upstream file — worth sending
    upstream, since it affects any renamed build.
+3. A few upstream files still describe the autoconf build, and are left alone as upstream files: `README.md`
+   and `scripts/dev/makedist` run `./buildconf` and `./configure` (both gone, so `makedist` no longer works
+   and the README's build instructions do not apply to this fork — use the recipes above), `ext/ext_skel.php`
+   offers `buildconf`/`configure --enable-ext` as the in-tree way to add an extension (the phpize path it
+   leads with is the one that still works), `ext/tokenizer/tokenizer_data_gen.php`'s error message names
+   `scripts/dev/genfiles`, and the `.github/` and `.circleci/` configs run the old build throughout.
 
-The autotools path (`just all`, flags in `platform/_common/configure-cli`) is still the reference: debug, ZTS,
-the cli, cgi and phpdbg SAPIs, external pcre, JIT and fiber asm disabled, most extensions `=shared`, and
-`make test` works. Keep `config.m4` and `meson.build` in sync while both exist.
+## phpize and third-party extensions
+
+`phpize` is the one piece of the autoconf build that survives, and it survives by being *shipped* rather than
+replaced. It is not a build input of this tree any more: `scripts/meson.build` installs the payload into
+`$prefix/lib/build` (the destination `phpize.in` derives from `@libdir@`), alongside `bin/phpize`, `bin/php-config`
+and their man pages.
+
+The payload is `phpize.m4` plus what autoconf needs to expand a `config.m4`: `php.m4` and the
+libtool/pkg/ax macro files, `ltmain.sh`, `Makefile.global`, `shtool`, `config.guess`, `config.sub`,
+`gen_stub.php` and `run-tests.php`. PHP-Parser 5.6.1 is vendored in `build/PHP-Parser-5.6.1/` and installed
+with them, because `gen_stub.php` downloads it from GitHub when it is not beside itself — the vendored copy is
+what makes an out-of-tree `.stub.php` work offline. (That is also why `scripts/phpize.in` copies
+`PHP-Parser-*` along with its named file list; it globs, so the version stays pinned in `gen_stub.php` alone.)
+
+`just check-phpize` is the gate. It builds a throwaway extension — one option, one `AC_DEFINE`, one module,
+one `.phpt` — through `phpize`, `configure`, `make`, arginfo generation and `make test`, and loads the result
+into the installed binary. It is skipped rather than failed when `autoconf`, `autoheader` or `make` is
+missing, because punk's own build must not depend on them. `just meson` runs it after installing.
+
+What this does *not* do is make out-of-tree builds autoconf-free: an extension author still needs autoconf,
+autoheader, make, a C compiler and `sed`/`awk`, exactly as before. The m4 stack is quarantined, not
+eliminated. Two smaller consequences: `run-tests.php` wants `$ext/.github/lsan-suppressions.txt` and
+`$ext/scripts/dev/bless_tests.php` for `--bless` and lsan suppressions, neither of which phpize copies, so
+those two modes do not work out of tree; and `gen_stub.php` needs the `tokenizer` extension, which punk builds
+shared.
 
 ## Changing PHP
 
-- A new `.c` file must be listed in the `meson.build` of its directory *and* in the corresponding
-  `config.m4`. A new extension needs `ext/<name>/meson.build`, a `subdir()` line in the root `meson.build`,
-  and (for autotools) an `--enable-…` flag in `platform/_common/configure-cli`.
+- A new `.c` file goes into the `meson.build` of its directory. A new extension needs `ext/<name>/meson.build`
+  and a `subdir()` line in the root `meson.build`; there is no configure flag to add, because every extension
+  in the tree is built unconditionally. Upstream will add the matching `config.m4`, and keeping it in step
+  with the `meson.build` is how the next person can tell what the port was meant to say.
 - Generated sources are all gitignored build products, owned by meson: a `custom_target` in each directory's
-  `meson.build` regenerates them with the exact flags `build/regenerate` uses (so the result matches
-  autoconf's byte for byte apart from `#line` source paths), and a meson build never needs `just generate`.
-  re2c and bison write into the build directory directly.  The VM (`zend_vm_opcodes.h`/`.c`,
-  `zend_vm_execute.h`, `zend_vm_handlers.h`) writes into its own source directory, so
-  `build/gen-zend-vm.sh` copies the script and its inputs into the build directory and runs the copy there.
+  `meson.build` regenerates them with the exact flags the autoconf build used, so a meson build never needs a
+  generation step of its own. re2c and bison write into the build directory directly.  The VM
+  (`zend_vm_opcodes.h`/`.c`, `zend_vm_execute.h`, `zend_vm_handlers.h`) writes into its own source directory,
+  so `build/gen-zend-vm.sh` copies the script and its inputs into the build directory and runs the copy there.
   The VM headers are installed by that target's `install:` kwarg (install_headers rejects custom_target
-  outputs), which also drops a harmless `zend_vm_opcodes.c` into the include tree.  `build/regenerate` (via
-  `just generate`) stays for autoconf, which still needs the source-tree copies; touching any `*.l`, `*.y`,
+  outputs), which also drops a harmless `zend_vm_opcodes.c` into the include tree.  Touching any `*.l`, `*.y`,
   `*.re` or `Zend/zend_vm_def.h` is picked up by the next `just meson`.  (Upstream commits the VM files, so an
   upstream merge that touches them will conflict with punk's deletion; the resolution is to regenerate them.)
 - Arginfo headers (`*_arginfo.h`, `*_decl.h`, `*_legacy_arginfo.h`) are generated by `build/gen_stub.php` from the
@@ -241,8 +263,7 @@ the cli, cgi and phpdbg SAPIs, external pcre, JIT and fiber asm disabled, most e
   committed public headers, so they are transitively public and stay committed — `ext/dom/php_dom_decl.h`,
   `ext/pcntl/pcntl_decl.h`, `ext/random/random_decl.h`, `ext/reflection/php_reflection_decl.h`,
   `ext/standard/basic_functions_decl.h`, `ext/uri/php_uri_decl.h`, and `main/streams/stream_errors_decl.h`.
-  Every other generated header is gitignored; the meson build regenerates it, and `just generate` (via
-  `build/regenerate`) still refreshes the source-tree copies autoconf needs.  `ext/intl`'s arginfo is not
+  Every other generated header is gitignored and regenerated by the meson build.  `ext/intl`'s arginfo is not
   converted yet and stays committed.
 - Style: `CODING_STANDARDS.md` and `.editorconfig`; `clang-format`/`clang-tidy` are in the container. Language
   semantics changes should be reflected in `UPGRADING` / `UPGRADING.INTERNALS`; `EXTENSIONS` lists maintainers.
@@ -255,28 +276,23 @@ the cli, cgi and phpdbg SAPIs, external pcre, JIT and fiber asm disabled, most e
 ## Testing
 
 ```sh
-PLATFORM=aarch64-linux-gnu just test                        # whole suite, autotools build tree
+PLATFORM=aarch64-linux-gnu just test                        # whole suite, on the binaries just built
 PLATFORM=aarch64-linux-gnu just test Zend/tests/foo.phpt    # one test file or directory (repeatable)
-PLATFORM=aarch64-linux-gnu just _meson-test                 # the same suite, on the binaries just built
 PLATFORM=aarch64-linux-gnu just test-installed              # the same suite, on the installed binaries
 PLATFORM=aarch64-linux-gnu just test-installed ext/curl/tests
 PLATFORM=aarch64-linux-gnu just unit-test                   # meson's test() targets: one smoke test per front-end
 ```
 
-`just test` needs an autotools build tree (`just configure` + `just make`): `make test` runs the autotools
-CLI with `-n`, a generated `tmp-php.ini` and `extension_dir=<build>/modules/`, and it deliberately ignores
-the exit status, so read the summary line.
-
-`just _meson-test` runs the suite against `$meson_build_dir/sapi/cli/punk` without installing anything — it
-is a step of `just meson`, and also usable on its own for iteration. `just test-installed` does the same for
+`just test` runs the suite against `$meson_build_dir/sapi/cli/punk` without installing anything — it is a
+step of `just meson`, and also usable on its own for iteration. `just test-installed` does the same for
 `$prefix/bin/punk` after `just meson`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
 from the binary's path: for a build directory it symlinks the modules scattered under `ext/` into
 `<build>/modules` and points `extension_dir` there, and for an install it uses `$prefix/lib`. Either way it
 loads every module except `dl_test` and the ones the binary already contains, points `run-tests.php` at the
 matching `php-cgi` for the web tests, exports `TEST_FPM_EXTENSION_DIR` for the FPM tests and
 `TEST_PHPDBG_EXECUTABLE` for the phpdbg ones, and applies the usual `PHP_TEST_SETTINGS`. `test-installed`
-propagates the runner's exit status; `_meson-test` ignores it on purpose, so that `just meson` still installs
-a build whose tests fail. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
+propagates the runner's exit status; `test` ignores it on purpose, so that `just meson` still installs a
+build whose tests fail — read the summary line. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
 
 `run-tests.php` discovers `sapi/fpm/tests` along with `Zend`, `tests` and `ext`, so those ~143 tests are part
 of the ordinary suite once a `php-fpm` exists for them to find: `FPM\Tester::findExecutable()` walks two
@@ -301,28 +317,26 @@ the debugger's breakpoints, watchpoints, eval and stepping. `run-phpt-suite` has
 called `punk` (see below); in a build directory it would find `<build>/sapi/phpdbg/phpdbg` by path anyway.
 
 Either way: extra args come from `TEST_PHP_ARGS` (`-q -j12` here), and `SKIP_SLOW_TESTS=1` / the
-default-offline `SKIP_ONLINE_TESTS` prune the suite. Both targets reach everything the autotools build does,
-and more: autoconf's configuration builds the cli, cgi and phpdbg SAPIs, while meson also builds embed and
-fpm, so the FPM and `--PHPDBG--` tests are part of it. The dozen or so that still fail
-(filesystem/permission tests, two soap tests, and run-tests' own self-tests) fail the same way under
-`make test`.
+default-offline `SKIP_ONLINE_TESTS` prune the suite. The dozen or so that still fail (filesystem/permission
+tests, two soap tests, and run-tests' own self-tests) are upstream failures, not port ones.
 
 ## Roadmap constraints (keep these in mind, from the justfile)
 
 - To-do: the remaining `*dbm` packages, ODBC (builds, fails many tests), `pdo_dblib` (crashes the suite),
   getting `mysqli`/`mysqlnd` to load when built shared, an option for which extensions are static (so the
-  fuzzer build can be `--disable-all`-like and the exif/mbstring/mbregex fuzzers can link), and
-  gcov/valgrind support.
-- Never: `--enable-litespeed` and `--with-ibm-db2` (proprietary), `--with-gdbm`, `--with-readline`, `--with-mhash`,
-  `--with-mm`, `--with-pear` (licensing, deprecation, or broken).
+  fuzzer build can be minimal and the exif/mbstring/mbregex fuzzers can link), and gcov/valgrind support.
+- Never: litespeed and ibm-db2 (proprietary), gdbm, readline, mhash, mm, pear (licensing, deprecation, or
+  broken).
 - Linux is the only supported target for the foreseeable future; other platforms come later, Windows last.
 
 ## Working-tree notes
 
-- `master` mirrors upstream php-src; punk commits sit on top (current branch `branch_naming_is_hard`). Write
-  normal descriptive commit messages — the terse one-line subjects in the log are the maintainer's own habit,
-  not a convention to copy.
+- `master` mirrors upstream php-src; punk commits sit on top (current branch `yeet_autoconf`). Write normal
+  descriptive commit messages — the terse one-line subjects in the log are the maintainer's own habit, not a
+  convention to copy.
 - The punk `.gitignore` ignores root dotfiles/dirs except a few (so `.idea/`, `.junie/`, `.my-meson/` are
   local-only), `.env`, and `actmp.*`; meson build dirs ignore themselves via the `.gitignore` meson writes.
+  `build/PHP-Parser-5.6.1` is the one vendored dependency and is deliberately *not* ignored — the surrounding
+  `build/PHP-Parser-*` rule keeps any other version gen_stub.php downloads out of the tree.
 - The authoritative meson build dir is `platform/<PLATFORM>/.meson-build`.
 - The `.github/workflows` and `.circleci` configs are upstream php-src's and are not adapted to punk.

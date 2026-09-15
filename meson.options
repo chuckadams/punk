@@ -1,11 +1,12 @@
 # Options land here as the autoconf port progresses: --with/--enable become
 # feature options here, and meson setup -D<name>=... / meson configure -D<name>=...
-# replace the old configure flags.  For now only the migration switch below
-# exists, and it will go away with the last generated header.
+# replace the old configure flags.  There is no option gating the configuration
+# itself: subdir('build') runs unconditionally, so its checks run at every setup
+# and whenever an option changes.
 
 # Build variants.  The defaults reproduce the configuration punk has always been
-# built with (matching platform/_common/configure-cli); the autoconf spellings
-# were --enable-debug --enable-zts --enable-sigchild --disable-fiber-asm.
+# built with; the autoconf spellings were --enable-debug --enable-zts
+# --enable-sigchild --disable-fiber-asm.
 option('zts', type : 'boolean', value : true, description : 'Build thread-safe (ZTS)')
 option('zend-debug', type : 'boolean', value : true, description : 'Build with ZEND_DEBUG')
 option('sigchild', type : 'boolean', value : true, description : 'Enable the sigchild handling')

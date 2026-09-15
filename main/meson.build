@@ -52,15 +52,16 @@ main_sources = files(
 )
 
 # debug_gdb_scripts.c embeds the GDB scripts into a .debug_gdb_scripts ELF
-# section, so it only builds on ELF targets (configure.ac's `#if __ELF__` check).
+# section, so it only builds on ELF targets (the autoconf build's `#if __ELF__`
+# check).
 if cc.get_define('__ELF__') != ''
     main_sources += files('debug_gdb_scripts.c')
 endif
 
 # internal_functions_cli.c lists the extensions linked into the front-ends.  Both
 # orders matter: the include order follows the extension list and the module
-# pointer order is the registration order, which build/order_by_dep.awk sorted by
-# the extensions' dependencies (mysqlnd before mysqli, and so on).  They are
+# pointer order is the registration order, which the autoconf build sorted by the
+# extensions' dependencies (mysqlnd before mysqli, and so on).  They are
 # recorded here rather than derived, so adding a statically linked extension means
 # adding it to cli_static_extensions in the root meson.build and to both lists
 # below.

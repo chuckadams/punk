@@ -80,8 +80,8 @@ install_data(php_config, install_dir : get_option('bindir'), install_mode : 'rwx
 #
 # phpize is kept, and kept by shipping the autoconf machinery it needs rather
 # than by replacing it: it copies these files into an extension and runs
-# autoconf on the config.m4 it finds there.  The manifest is the one
-# scripts/Makefile.frag's install-build used, and the destination has to be what
+# autoconf on the config.m4 it finds there.  The manifest is the one the autoconf
+# build's install-build target installed, and the destination has to be what
 # phpize.in looks for -- it derives phpdir from @libdir@, so the payload lands
 # in $prefix/lib/build.
 #

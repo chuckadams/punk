@@ -77,10 +77,10 @@ php_fpm_exe = executable(
 # and a full request startup/shutdown without needing a pool to connect to.
 test('sapi_fpm_test_version', php_fpm_exe, args : ['-n', '--version'])
 
-# The configuration files and the man page are templates that configure.ac filled
-# in from the install layout.  That layout comes from meson's directory options
-# here, so the two agree by construction -- including EXPANDED_*, which the
-# comments in php-fpm.conf and www.conf quote back at the reader.
+# The configuration files and the man page are templates the autoconf build
+# filled in from the install layout.  That layout comes from meson's directory
+# options here, so the two agree by construction -- including EXPANDED_*, which
+# the comments in php-fpm.conf and www.conf quote back at the reader.
 fpm_prefix = get_option('prefix')
 fpm_dir_options = {
     'sbindir': get_option('sbindir'),
@@ -127,9 +127,9 @@ fpm_php_fpm_8 = configure_file(input : 'php-fpm.8.in', output : 'php-fpm.8', con
 # No substitutions in the status page, so it is copied rather than configured.
 fpm_status_html = configure_file(input : 'status.html.in', output : 'status.html', copy : true)
 
-# Generated for packagers but not installed, matching Makefile.frag: the init
-# script and the unit file are things a package ships in its own place, not in
-# the PHP install.
+# Generated for packagers but not installed, matching upstream's install-fpm
+# target: the init script and the unit file are things a package ships in its own
+# place, not in the PHP install.
 configure_file(input : 'init.d.php-fpm.in', output : 'init.d.php-fpm', configuration : fpm_conf_data)
 configure_file(input : 'php-fpm.service.in', output : 'php-fpm.service', configuration : fpm_conf_data)
 

@@ -13,10 +13,10 @@ cflags = [
 fs = import('fs')
 
 # PHP's version, as opposed to this project's -- meson.project_version() is
-# punk's own 0.1.  configure normally generates main/php_version.h from
-# configure.ac, but the file is tracked and the meson build has no configure
-# step, so the tracked copy is read here: php-config, php_config.h and FPM's man
-# page all want the value, and reading it in one place keeps them agreeing.
+# punk's own 0.1.  autoconf's configure used to generate main/php_version.h, but
+# the file is tracked and the meson build has no configure step, so the tracked
+# copy is read here: php-config, php_config.h and FPM's man page all want the
+# value, and reading it in one place keeps them agreeing.
 php_version = ''
 php_version_id = 0
 foreach line : fs.read(meson.project_source_root() / 'main/php_version.h').split('\n')
@@ -162,26 +162,6 @@ static_c_args = ['-DZEND_ENABLE_STATIC_TSRMLS_CACHE=1']
 subdir('main')
 subdir('TSRM')
 subdir('Zend')
-
-# Interoperability check.  autoconf also writes main/php_config.h, into the
-# source tree, and for the sources in main/ that copy wins over the generated
-# one -- a quoted include looks in the including file's own directory first.
-# Whenever both exist they should say the same thing, so a disagreement (an
-# autotools configuration with different options, say) is worth a warning
-# rather than a binary quietly built from two configurations.
-compare_config_headers = find_program('scripts/dev/compare-config-headers', required: false)
-autoconf_php_config_h = meson.current_source_dir() / 'main/php_config.h'
-if compare_config_headers.found() and fs.is_file(autoconf_php_config_h)
-    compare = run_command(
-        compare_config_headers,
-        autoconf_php_config_h,
-        meson.current_build_dir() / 'main/php_config.h',
-        check: false,
-    )
-    if compare.returncode() != 0
-        warning('the source tree\'s main/php_config.h (autoconf) and the generated one differ; run `just compare-config` for the details')
-    endif
-endif
 
 subdir('ext/bcmath')
 subdir('ext/bz2')

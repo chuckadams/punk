@@ -16,7 +16,7 @@ services:
     <<: *punk
     build:
       target: builder
-    entrypoint: ['just', 'all']
+    entrypoint: ['just', 'meson']
     restart: no
 
 volumes:

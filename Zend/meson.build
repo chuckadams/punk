@@ -98,7 +98,7 @@ zend_config_h = configure_file(
 
 # The scanner and parser sources are generated, and are gitignored rather than
 # committed, so meson produces its own copies into the build directory with the
-# exact flags build/regenerate uses for autoconf.  re2c and bison are plain
+# exact flags the autoconf build used.  re2c and bison are plain
 # custom_target invocations; the one post-processing step -- making zendparse
 # exported -- is folded into the bison command via perl.
 re2c = find_program('re2c')
@@ -139,7 +139,7 @@ php = find_program('php')
 # zend_vm_gen.php writes into its own directory and reads its inputs from there,
 # so gen-zend-vm.sh copies the script and its inputs into the build directory
 # and runs the copy; the four outputs land in the build tree like the re2c and
-# bison outputs.  build/regenerate runs the script in place for autoconf.
+# bison outputs.
 #
 # install_headers/install_data reject custom_target outputs, so the only way to
 # install these is the target's own install kwarg -- which installs every output,

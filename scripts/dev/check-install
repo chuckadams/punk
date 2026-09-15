@@ -5,9 +5,9 @@
 #   1. php-config answers with this install's own paths;
 #   2. the headers are complete enough to compile an out-of-tree extension
 #      against them, and the installed binary loads what comes out;
-#   3. the directories autoconf installed wholesale still have every header in
-#      them installed (meson has no glob, so those lists are hand-written and
-#      are exactly the kind that silently drifts).
+#   3. the directories installed wholesale still have every header in them
+#      installed (meson has no glob, so those lists are hand-written and are
+#      exactly the kind that silently drifts).
 #
 # Usage: check-install [PREFIX]     (default: /opt/punk)
 #
@@ -102,13 +102,13 @@ out=$("$punk" -n -d "extension=$work/punk_test.so" -r 'echo punk_test_hello(), "
 ok "an out-of-tree module compiles against the install and runs"
 
 echo "checking the wholesale header directories"
-# configure.ac's PHP_INSTALL_HEADERS names these directories without a file
-# list, so autoconf installs every header in them.  (Zend/Optimizer is not one
-# of them: there the nine installed headers are named individually.)  The shell
-# glob gives direct children only, and the git filter skips gitignored build
-# products -- a few generated headers (zend_language_parser.h, the scanner
-# defs, and the config headers) that meson writes into its own build directory
-# and only autoconf drops into the source tree.
+# The install lists name these directories without a file list, so every header
+# in them is installed.  (Zend/Optimizer is not one of them: there the nine
+# installed headers are named individually.)  The shell glob gives direct
+# children only, and the git filter skips gitignored build products -- a few
+# generated headers (zend_language_parser.h, the scanner defs, and the config
+# headers) that meson writes into its own build directory and only a stray
+# autotools run would leave in the source tree.
 for dir in TSRM Zend main main/streams ext/standard ext/mysqlnd ext/gd/libgd; do
     [ -d "$src/$dir" ] || continue
     missing=0
