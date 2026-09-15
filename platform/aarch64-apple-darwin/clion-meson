@@ -4,11 +4,9 @@
 
 set -euo pipefail
 
-cd $(dirname $0)
 set -a
-. .env
+. $(dirname $0)/.env
 set +a
-cd ../..
 
 # clion can't cope with compilers of >1 word like "ccache cc"
 # I could fix this with a wrapper, but this is simpler for now
