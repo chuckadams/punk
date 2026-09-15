@@ -65,8 +65,10 @@ test *TESTS:
 
 # run the .phpt suite against the installed binary (see `just meson`):
 #   just test-installed ext/curl/tests
+# Through bin/php rather than bin/punk: the symlink is what lets run-tests.php
+# derive php-cgi and phpdbg from the tested binary's name.
 test-installed *TESTS:
-    {{shell}} scripts/dev/run-phpt-suite {{prefix}}/bin/punk {{TESTS}}
+    {{shell}} scripts/dev/run-phpt-suite {{prefix}}/bin/php {{TESTS}}
 
 clean:
     rm -rf actmp.* modules

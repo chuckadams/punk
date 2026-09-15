@@ -206,13 +206,13 @@ Known gaps, in rough priority order:
    API) and `ext/zip` was missing `zip_source.c`. Drift surfaces as undefined symbols at load time rather
    than as build errors, which is what `just check-modules` is for — compare against `config.m4` when
    touching an extension, and when an upstream merge brings one in.
-2. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name, which does not work for
-   a binary called `punk`: `get_binary()` substitutes "php" for the sapi in that name, and `punk` contains no
-   "php", so it now refuses to return the tested binary rather than let it pass as its own cgi or phpdbg.
-   Those tests therefore skip, and `scripts/dev/run-phpt-suite` exports `TEST_PHP_CGI_EXECUTABLE` and
-   `TEST_PHPDBG_EXECUTABLE` to fill the gap — the build tree's layout happens to satisfy `get_binary()`'s
-   source-tree probe, an install's does not. That is a fork-only change to an upstream file — worth sending
-   upstream, since it affects any renamed build.
+2. `run-tests.php` derives the cgi and phpdbg binaries from the tested binary's name: `get_binary()`
+   substitutes the sapi into the basename, and probes `<build>/sapi/<sapi>/` first. That is why the install
+   is entered through `bin/php` rather than `bin/punk` — "punk" contains no "php", so the substitution would
+   map the binary to itself, and `get_binary()` deliberately refuses that rather than let the tested binary
+   pass as its own cgi or phpdbg. `scripts/dev/run-phpt-suite` therefore exports nothing for those two and
+   warns instead when the binary it is given carries no "php". The fork-only change to `run-tests.php` is the
+   refusal itself; it affects any renamed build and is worth sending upstream.
 3. A few upstream files still describe the autoconf build, and are left alone as upstream files: `README.md`
    and `scripts/dev/makedist` run `./buildconf` and `./configure` (both gone, so `makedist` no longer works
    and the README's build instructions do not apply to this fork — use the recipes above), `ext/ext_skel.php`
@@ -289,14 +289,15 @@ PLATFORM=aarch64-linux-gnu just unit-test                   # meson's test() tar
 
 `just test` runs the suite against `$meson_build_dir/sapi/cli/punk` without installing anything — it is a
 step of `just meson`, and also usable on its own for iteration. `just test-installed` does the same for
-`$prefix/bin/punk` after `just meson`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
+`$prefix/bin/php` after `just meson`. Both go through `scripts/dev/run-phpt-suite`, which derives the layout
 from the binary's path: for a build directory it symlinks the modules scattered under `ext/` into
 `<build>/modules` and points `extension_dir` there, and for an install it uses `$prefix/lib`. Either way it
-loads every module except `dl_test` and the ones the binary already contains, points `run-tests.php` at the
-matching `php-cgi` for the web tests, exports `TEST_FPM_EXTENSION_DIR` for the FPM tests and
-`TEST_PHPDBG_EXECUTABLE` for the phpdbg ones, and applies the usual `PHP_TEST_SETTINGS`. `test-installed`
-propagates the runner's exit status; `test` ignores it on purpose, so that `just meson` still installs a
-build whose tests fail — read the summary line. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
+loads every module except `dl_test` and the ones the binary already contains, exports `TEST_FPM_EXTENSION_DIR`
+for the FPM tests, and applies the usual `PHP_TEST_SETTINGS`. It deliberately exports nothing for the CGI and
+phpdbg binaries: `run-tests.php` derives those itself (see the gap below), and an exported path would take
+precedence over that lookup and hide whether it still works. `test-installed` propagates the runner's exit
+status; `test` ignores it on purpose, so that `just meson` still installs a build whose tests fail — read the
+summary line. `PUNK_TEST_INI=<file>` swaps `-n` for an ini.
 
 `run-tests.php` discovers `sapi/fpm/tests` along with `Zend`, `tests` and `ext`, so those ~143 tests are part
 of the ordinary suite once a `php-fpm` exists for them to find: `FPM\Tester::findExecutable()` walks two
@@ -314,15 +315,19 @@ embeds PHP, evaluates a snippet and checks the returned value, `sapi/fpm` runs `
 `sapi/phpdbg` runs `phpdbg -n -V`. Each of the last two starts the engine, registers the SAPI and tears it
 down again, which is the cheapest thing that fails if the front-end is not actually wired up.
 
-Because punk now builds phpdbg, the `--PHPDBG--` tests run too — 75 of them, in `sapi/phpdbg/tests/` and two
-under `Zend/tests/stack_limit/`. They were skipping before, and they are worth reaching: they are what covers
-the debugger's breakpoints, watchpoints, eval and stepping. `run-phpt-suite` has to pass
-`TEST_PHPDBG_EXECUTABLE` for the installed case, because `get_binary()` cannot derive a `phpdbg` from a binary
-called `punk` (see below); in a build directory it would find `<build>/sapi/phpdbg/phpdbg` by path anyway.
+Because punk now builds phpdbg, the `--PHPDBG--` tests run too — 73 of them, in `sapi/phpdbg/tests/`. They
+were skipping before, and they are worth reaching: they are what covers the debugger's breakpoints,
+watchpoints, eval and stepping. They run for both entry points because `get_binary()` finds the debugger
+either way: by the `<build>/sapi/phpdbg/phpdbg` source-tree probe from the build directory, and by
+substituting the sapi into `php`'s name from the install.
 
 Either way: extra args come from `TEST_PHP_ARGS` (`-q -j12` here), and `SKIP_SLOW_TESTS=1` / the
-default-offline `SKIP_ONLINE_TESTS` prune the suite. The dozen or so that still fail (filesystem/permission
-tests, two soap tests, and run-tests' own self-tests) are upstream failures, not port ones.
+default-offline `SKIP_ONLINE_TESTS` prune the suite. A dozen or so tests fail: filesystem/permission tests,
+two soap tests, run-tests' own self-tests, an FPM UDS test that cannot pass on a macOS bind mount, and a few
+`proc_open`/streams tests that race on exit status. They are upstream failures rather than port ones, and the
+exact set moves with the machine and the load — a full run has been seen at both 12 and 15 failures with no
+change in between — so treat the count as approximate, and check whether a failure is in the C code or in the
+tooling before blaming the build.
 
 ## Roadmap constraints (keep these in mind, from the justfile)
 

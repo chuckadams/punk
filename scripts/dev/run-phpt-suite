@@ -2,7 +2,7 @@
 # Run the .phpt suite against a punk build: either the binaries built inside a
 # meson build directory, or an installed prefix.
 #
-# usage: run-phpt-suite <punk binary> [test path ...]
+# usage: run-phpt-suite <cli binary> [test path ...]
 #
 # The layout is derived from the binary's path:
 #
@@ -10,13 +10,15 @@
 #                           <build>/ext, so they are symlinked into
 #                           <build>/modules -- the equivalent of the autotools
 #                           modules/ directory -- and that is passed as
-#                           extension_dir.  <build>/sapi/cgi/php-cgi runs the
-#                           web tests and <build>/sapi/phpdbg/phpdbg the
-#                           --PHPDBG-- ones.
-#   <prefix>/bin/punk       Installed.  Modules come from <prefix>/lib, which is
-#                           also the compiled-in extension_dir, and
-#                           <prefix>/bin/php-cgi runs the web tests while
-#                           <prefix>/bin/phpdbg runs the --PHPDBG-- ones.
+#                           extension_dir.  run-tests.php finds php-cgi and
+#                           phpdbg from here through its source-tree probe
+#                           (<build>/sapi/cgi/php-cgi, <build>/sapi/phpdbg/phpdbg).
+#   <prefix>/bin/php        Installed -- the symlink to the real `punk` binary.
+#                           Modules come from <prefix>/lib, which is also the
+#                           compiled-in extension_dir, and run-tests.php finds
+#                           php-cgi and phpdbg by substituting the sapi into the
+#                           tested binary's name, which is the reason to come in
+#                           through `php` and not `punk`.
 #
 # Modules the binary already contains are not loaded again, and dl_test is
 # skipped the way the makefile does it (it is a test fixture rather than a
@@ -26,7 +28,7 @@
 
 set -euo pipefail
 
-binary=${1:?usage: run-phpt-suite <punk binary> [test path ...]}
+binary=${1:?usage: run-phpt-suite <cli binary> [test path ...]}
 shift || true
 
 binary_dir=$(cd "$(dirname "$binary")" && pwd)
@@ -70,6 +72,15 @@ else
     cgi=$prefix/bin/php-cgi
     phpdbg=$prefix/bin/phpdbg
     ext_dir=$prefix/lib
+
+    # run-tests.php finds the two binaries above by substituting the sapi into
+    # the tested binary's name, so the CLI has to be reached through the `php`
+    # symlink.  Saying so beats letting the --CGI-- and --PHPDBG-- tests skip
+    # for a reason nobody can see.
+    case "$(basename "$binary")" in
+        *php*) ;;
+        *) echo "run-phpt-suite: warning: $(basename "$binary") carries no 'php', so run-tests.php cannot derive php-cgi/phpdbg from it" >&2 ;;
+    esac
 fi
 
 # Whatever the binary already provides must not be loaded a second time. Asking
@@ -101,24 +112,17 @@ if [ ${#module_args[@]} -eq 0 ]; then
     exit 1
 fi
 
-# run-tests.php drives --POST--/--GET--/--COOKIE--/--CGI-- tests through the CGI
-# binary. Its own lookup derives "php-cgi" from the tested binary's name, which
-# finds nothing next to a binary called "punk" and then falls back to that
-# binary, so point it at the CGI binary explicitly.
-if [ -x "$cgi" ]; then
-    export TEST_PHP_CGI_EXECUTABLE=$cgi
-else
+# run-tests.php derives the CGI and phpdbg binaries itself -- get_binary()
+# substitutes the sapi into the tested binary's name, and probes the source tree
+# first -- so nothing is exported for them here.  Anything exported would take
+# precedence over that lookup and hide whether it still works, which is the
+# point of coming in through `php`; if these two go missing the --CGI-- and
+# --PHPDBG-- tests skip, and the counts say so.
+if [ ! -x "$cgi" ]; then
     echo "run-phpt-suite: warning: no $cgi, web tests will fail" >&2
 fi
 
-# The --PHPDBG-- tests need the debugger, and run-tests.php's own lookup cannot
-# derive it here: it substitutes "php" for the sapi in the tested binary's name,
-# and "punk" contains no "php", so it deliberately gives up rather than let the
-# tested binary pass as its own phpdbg.  (It would find the build-tree binary by
-# path, but not an installed one.)
-if [ -x "$phpdbg" ]; then
-    export TEST_PHPDBG_EXECUTABLE=$phpdbg
-else
+if [ ! -x "$phpdbg" ]; then
     echo "run-phpt-suite: warning: no $phpdbg, --PHPDBG-- tests will skip" >&2
 fi
 
